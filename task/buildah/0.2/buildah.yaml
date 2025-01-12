@@ -557,7 +557,7 @@ spec:
     workingDir: $(workspaces.source.path)
 
   - name: sbom-syft-generate
-    image: registry.access.redhat.com/rh-syft-tech-preview/syft-rhel9:1.4.1@sha256:34d7065427085a31dc4949bd283c001b91794d427e1e4cdf1b21ea4faf9fee3f
+    image: quay.io/zxiong/rh-syft:0.2
     # Respect Syft configuration if the user has it in the root of their repository
     # (need to set the workdir, see https://github.com/anchore/syft/issues/2465)
     workingDir: $(workspaces.source.path)/source
@@ -573,6 +573,14 @@ spec:
       syft dir:"$(workspaces.source.path)/$SOURCE_CODE_DIR/$CONTEXT" --output cyclonedx-json="$(workspaces.source.path)/sbom-source.json"
       echo "Running syft on the image filesystem"
       syft dir:"$(cat /shared/container_path)" --output cyclonedx-json="$(workspaces.source.path)/sbom-image.json"
+      container=$(cat /shared/container_name)
+      mount_cmd="buildah mount $container; syft dir:$(cat /shared/container_path) --output cyclonedx-json=$(workspaces.source.path)/sbom-image.json"
+      unshare -Uf --keep-caps -r -m -- sh -c "$mount_cmd"
+    securityContext:
+      capabilities:
+        add:
+        - SETFCAP
+      runAsUser: 0
     volumeMounts:
     - mountPath: /var/lib/containers
       name: varlibcontainers
