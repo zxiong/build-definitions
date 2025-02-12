@@ -4,6 +4,7 @@ metadata:
   annotations:
     tekton.dev/pipelines.minVersion: 0.12.1
     tekton.dev/tags: image-build, konflux
+    io.kubernetes.cri-o.Devices: "/dev/fuse"
   creationTimestamp: null
   labels:
     app.kubernetes.io/version: "0.4"
@@ -573,7 +574,7 @@ spec:
       # disable host subcription manager integration
       find /usr/share/rhel/secrets -type l -exec unlink {} \;
 
-      unshare -Uf "${UNSHARE_ARGS[@]}" --keep-caps -r --map-users 1,1,65536 --map-groups 1,1,65536 -w "${SOURCE_CODE_DIR}/$CONTEXT" -- sh -c "$command"
+      unshare -Uf "${UNSHARE_ARGS[@]}" --keep-caps -r --map-users 1,1,65536 --map-groups 1,1,65536 -w "${SOURCE_CODE_DIR}/$CONTEXT" --mount -- sh -c "$command"
 
       container=$(buildah from --pull-never "$IMAGE")
 
@@ -583,7 +584,7 @@ spec:
         cp /tmp/cachi2/output/bom.json ./sbom-cachi2.json
       fi
 
-      buildah mount "$container" | tee /shared/container_path
+      unshare -Uf "${UNSHARE_ARGS[@]}" --keep-caps -r --map-users 1,1,65536 --map-groups 1,1,65536 --mount buildah mount "$container" | tee /shared/container_path
       # delete symlinks - they may point outside the container rootfs, messing with SBOM scanners
       find $(cat /shared/container_path) -xtype l -delete
       echo $container >/shared/container_name
@@ -662,7 +663,7 @@ spec:
 
       buildah images
       container=$(buildah from --pull-never "$IMAGE")
-      buildah mount "$container" | tee /shared/container_path
+      unshare -Uf "${UNSHARE_ARGS[@]}" --keep-caps -r --map-users 1,1,65536 --map-groups 1,1,65536 --mount buildah mount "$container" | tee /shared/container_path
       # delete symlinks - they may point outside the container rootfs, messing with SBOM scanners
       find $(cat /shared/container_path) -xtype l -delete
       echo $container > /shared/container_name
@@ -765,7 +766,7 @@ spec:
       readOnly: true
     workingDir: /var/workdir
   - computeResources: {}
-    image: registry.access.redhat.com/rh-syft-tech-preview/syft-rhel9:1.19.0@sha256:070ecb89de5104bb64fbf399a991a975e7d4d7e0cea0f7beb1e591b5591991c8
+    image: quay.io/zxiong/rh-syft:0.5
     name: sbom-syft-generate
     script: |
       #!/bin/bash
@@ -795,7 +796,15 @@ spec:
       echo "Running syft on the source directory"
       syft dir:"/var/workdir/$SOURCE_CODE_DIR/$CONTEXT" --output "$syft_sbom_type"="/var/workdir/sbom-source.json"
       echo "Running syft on the image filesystem"
-      syft dir:"$(cat /shared/container_path)" --output "$syft_sbom_type"="/var/workdir/sbom-image.json"
+      #syft dir:"$(cat /shared/container_path)" --output "$syft_sbom_type"="/var/workdir/sbom-image.json"
+      container=$(cat /shared/container_name)
+      mount_cmd="buildah mount $container; syft dir:$(cat /shared/container_path) --output $syft_sbom_type=/var/workdir/sbom-image.json"
+      unshare -Uf --keep-caps -r -m -- sh -c "$mount_cmd"
+    securityContext:
+      capabilities:
+        add:
+        - SETFCAP
+      runAsUser: 0
     volumeMounts:
     - mountPath: /var/lib/containers
       name: varlibcontainers
