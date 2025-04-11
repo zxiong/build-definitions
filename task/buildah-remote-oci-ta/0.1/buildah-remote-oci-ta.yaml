@@ -185,7 +185,7 @@ spec:
     - name: YUM_REPOS_D_TARGET
       value: $(params.YUM_REPOS_D_TARGET)
     - name: BUILDER_IMAGE
-      value: quay.io/konflux-ci/buildah-task:latest@sha256:ab0ba3b70f99faa74d2dd737422a965197af4922dec0109113bc535a94db0dfd
+      value: quay.io/konflux-ci/buildah-task:latest@sha256:abbe85cd9fea181eaf38aa53ec51277ea927af97aeac7703a729f744c8623460
     volumeMounts:
     - mountPath: /shared
       name: shared
