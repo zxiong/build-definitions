@@ -888,7 +888,7 @@ spec:
       syft dir:"/var/workdir/$SOURCE_CODE_DIR/$CONTEXT" --output "$syft_sbom_type"="/var/workdir/sbom-source.json"
       echo "Running syft on the image filesystem"
       syft dir:"$(cat /shared/container_path)" --output "$syft_sbom_type"="/var/workdir/sbom-image.json"
-      syft archive:/tmp/test-image-oci.tar --output "$syft_sbom_type"="/var/workdir/sbom-image.json"
+      syft oci-archive:/tmp/test-image-oci.tar --output "$syft_sbom_type"="/var/workdir/sbom-image.json"
 
       echo "[$(date --utc -Ins)] End sbom-syft-generate"
     volumeMounts:
