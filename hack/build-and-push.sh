@@ -30,7 +30,7 @@
 #   testing purpose only. It is useful for checking the result task bundles
 #   generally. Note that, if used, the result pipelines are broken.
 
-set -eux -o pipefail
+set -e -o pipefail
 
 VCS_URL=https://github.com/zxiong/build-definitions
 VCS_REF=$(git rev-parse HEAD)
