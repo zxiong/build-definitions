@@ -30,9 +30,9 @@
 #   testing purpose only. It is useful for checking the result task bundles
 #   generally. Note that, if used, the result pipelines are broken.
 
-set -e -o pipefail
+set -eux -o pipefail
 
-VCS_URL=https://github.com/konflux-ci/build-definitions
+VCS_URL=https://github.com/zxiong/build-definitions
 VCS_REF=$(git rev-parse HEAD)
 
 declare -r ARTIFACT_TYPE_TEXT_XSHELLSCRIPT="text/x-shellscript"
