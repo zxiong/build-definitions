@@ -227,7 +227,7 @@ spec:
     - name: YUM_REPOS_D_TARGET
       value: $(params.YUM_REPOS_D_TARGET)
     - name: BUILDER_IMAGE
-      value: quay.io/konflux-ci/buildah-task:latest@sha256:ab0ba3b70f99faa74d2dd737422a965197af4922dec0109113bc535a94db0dfd
+      value: quay.io/konflux-ci/buildah-task:latest@sha256:4d8273444b0f2781264c232e12e88449bbf078c99e3da2a7f6dcaaf27bc53712
     - name: PLATFORM
       value: $(params.PLATFORM)
     - name: IMAGE_APPEND_PLATFORM
