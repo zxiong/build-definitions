@@ -31,6 +31,9 @@ spec:
       type: string
       description: The name of the key in the ConfigMap that contains the CA bundle data.
       default: ca-bundle.crt
+    - name: max-threads
+      description: Maximum number of threads clamd runs.
+      default: "10"
 
   steps:
     - name: extract-and-scan-image
@@ -60,6 +63,30 @@ spec:
       script: |
         #!/usr/bin/env bash
         set -euo pipefail
+        # Set maximum number of threads clamd runs.
+        sed -i "s/^MaxThreads.*/MaxThreads $MAX_THREADS/" /etc/clamd.d/scan.conf
+
+        # Start clamd in background
+        echo "[$(date --utc -Ins)] Starting clamd..."
+        /usr/sbin/clamd -c /etc/clamd.d/scan.conf --foreground=false &
+
+        # Wait for the socket to be created
+        echo "[+] Waiting for clamd to be ready..."
+        RETRIES=30
+        for i in $(seq 1 "$RETRIES"); do
+            if [ -S /var/run/clamd.scan/clamd.sock ]; then
+                echo "[$(date --utc -Ins)] clamd is ready!"
+                break
+            fi
+            sleep 1
+        done
+
+        # Exit if clamd does not start successfully
+        if [ ! -S /var/run/clamd.scan/clamd.sock ]; then
+            echo "[ERROR] clamd did not start in time."
+            exit 1
+        fi
+
         . /utils.sh
         trap 'handle_error $(results.TEST_OUTPUT.path)' EXIT
 
@@ -90,26 +117,21 @@ spec:
             mkdir -p "$destination"
             arch_imageanddigest=$(echo $imagewithouttag@$arch_sha)
 
-            echo "Running \"oc image extract\" on image of arch $arch"
+            echo "[$(date --utc -Ins)] Running \"oc image extract\" on image of arch $arch"
             oc image extract --registry-config ~/.docker/config.json $arch_imageanddigest --path="/:${destination}" --filter-by-os="linux/${arch}"
             if [ $? -ne 0 ]; then
               echo "Unable to extract image for arch $arch. Skipping ClamAV scan!"
               exit 0
             fi
 
-            db_version=$(clamscan --version | sed 's|.*/\(.*\)/.*|\1|')
+            db_version=$(clamdscan --version | sed 's|.*/\(.*\)/.*|\1|')
 
-            echo "Scanning image for arch $arch. This operation may take a while."
-            clamscan "${destination}" -ri --max-scansize=4095M --max-filesize=2000M \
-              --max-scantime=0 --max-files=0 --max-recursion=1000 --max-dir-recursion=20000 --max-embeddedpe=4095M \
-              --max-htmlnormalize=10M --max-htmlnotags=4095M --max-scriptnormalize=5M --max-ziptypercg=4095M \
-              --max-partitions=50000 --max-iconspe=100000 --max-rechwp3=20000 --pcre-match-limit=100000000 --pcre-recmatch-limit=2000000 \
-              --pcre-max-filesize=4095M --alert-exceeds-max=yes \
-              --alert-encrypted=yes --alert-encrypted-archive=yes --alert-encrypted-doc=yes --alert-macros=yes \
-              --alert-phishing-ssl=yes --alert-phishing-cloak=yes --alert-partition-intersection=yes \
+            echo "[$(date --utc -Ins)] Scanning image for arch $arch. This operation may take a while."
+            clamdscan "${destination}" -vi --multiscan --fdpass \
               | tee /work/logs/clamscan-result-$arch.log || true
 
             echo "Executed-on: Scan was executed on clamscan version - $(clamscan --version) Database version: $db_version" | tee -a "/work/logs/clamscan-result-$arch.log"
+            echo "[$(date --utc -Ins)] Scan was executed for arch $arch."
 
             digests_processed+=("\"$arch_sha\"")
 
@@ -133,6 +155,7 @@ spec:
 
               cat /work/logs/clamscan-ec-test-$arch.json
             fi
+            echo "[$(date --utc -Ins)] EC test finished for arch $arch."
           done < <(echo "$image_manifests" | jq -r 'to_entries[] | "\(.key) \(.value)"')
         fi
 
