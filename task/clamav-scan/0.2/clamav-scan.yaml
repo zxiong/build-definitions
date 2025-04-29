@@ -31,6 +31,9 @@ spec:
       type: string
       description: The name of the key in the ConfigMap that contains the CA bundle data.
       default: ca-bundle.crt
+    - name: scan-threads
+      description: The number of scan threads
+      default: 8
 
   steps:
     - name: extract-and-scan-image
@@ -51,6 +54,8 @@ spec:
           value: $(params.image-url)
         - name: IMAGE_DIGEST
           value: $(params.image-digest)
+        - name: SCAN_THREADS
+          value: $(params.scan-threads)
       computeResources:
         limits:
           memory: 8Gi
@@ -90,7 +95,7 @@ spec:
             mkdir -p "$destination"
             arch_imageanddigest=$(echo $imagewithouttag@$arch_sha)
 
-            echo "Running \"oc image extract\" on image of arch $arch"
+            echo "[$(date --utc -Ins)] Running \"oc image extract\" on image of arch $arch"
             oc image extract --registry-config ~/.docker/config.json $arch_imageanddigest --path="/:${destination}" --filter-by-os="linux/${arch}"
             if [ $? -ne 0 ]; then
               echo "Unable to extract image for arch $arch. Skipping ClamAV scan!"
@@ -99,17 +104,41 @@ spec:
 
             db_version=$(clamscan --version | sed 's|.*/\(.*\)/.*|\1|')
 
-            echo "Scanning image for arch $arch. This operation may take a while."
-            clamscan "${destination}" -ri --max-scansize=4095M --max-filesize=2000M \
+            echo "[$(date --utc -Ins)] Distributing files for arch $arch ..."
+            find "$destination" -type f -print0 | while IFS= read -r -d '' file; do
+              size=$(stat -c "%s" "$file")
+              printf "%s\t%s\n" "$size" "$file"
+            done >"$HOME/files_manifest.tsv"
+            sort -k1n "$HOME/files_manifest.tsv" > "$HOME/files_manifest_sorted.tsv"
+
+            i=0
+            while IFS=$'\t' read -r size path; do
+              bucket=$((i % SCAN_THREADS))
+              echo "$path" >> "$HOME/file_bucket_$bucket.txt"
+              ((i=i+1))
+            done < "$HOME/files_manifest_sorted.tsv"
+
+            echo "[$(date --utc -Ins)] Scanning image for arch $arch. This operation may take a while."
+            for i in $(seq 0 $((SCAN_THREADS - 1))); do
+              BUCKET_FILE="$HOME/file_bucket_$i.txt"
+              clamscan -f "$BUCKET_FILE" -ri --max-scansize=4095M --max-filesize=2000M \
               --max-scantime=0 --max-files=0 --max-recursion=1000 --max-dir-recursion=20000 --max-embeddedpe=4095M \
               --max-htmlnormalize=10M --max-htmlnotags=4095M --max-scriptnormalize=5M --max-ziptypercg=4095M \
               --max-partitions=50000 --max-iconspe=100000 --max-rechwp3=20000 --pcre-match-limit=100000000 --pcre-recmatch-limit=2000000 \
               --pcre-max-filesize=4095M --alert-exceeds-max=yes \
               --alert-encrypted=yes --alert-encrypted-archive=yes --alert-encrypted-doc=yes --alert-macros=yes \
               --alert-phishing-ssl=yes --alert-phishing-cloak=yes --alert-partition-intersection=yes \
-              | tee /work/logs/clamscan-result-$arch.log || true
+              | tee /work/logs/clamscan-result-$arch-$i.log || true &
+            done
+            wait
+
+            # Merge scan results
+            for i in $(seq 0 $((SCAN_THREADS - 1))); do
+              cat /work/logs/clamscan-result-"$arch-$i".log >> /work/logs/clamscan-result-"$arch".log
+            done
 
             echo "Executed-on: Scan was executed on clamscan version - $(clamscan --version) Database version: $db_version" | tee -a "/work/logs/clamscan-result-$arch.log"
+            echo "[$(date --utc -Ins)] Scan was executed for arch $arch."
 
             digests_processed+=("\"$arch_sha\"")
 
