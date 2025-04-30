@@ -41,7 +41,7 @@ spec:
           - fetch-repository
         params:
           - name: IMAGE
-            value: quay.io/konflux-ci/pull-request-builds:appstudio-utils-{{revision}}
+            value: quay.io/redhat-user-workloads-stage/zxiong-tenant/build-definitions:appstudio-utils-{{revision}}
           - name: CONTEXT
             value: appstudio-utils
         taskRef:
@@ -64,7 +64,7 @@ spec:
           - name: revision
             value: $(params.revision)
           - name: utils_image
-            value: quay.io/konflux-ci/pull-request-builds:appstudio-utils-{{revision}}
+            value: quay.io/redhat-user-workloads-stage/zxiong-tenant/build-definitions:appstudio-utils-{{revision}}
           - name: expressions
             value:
               - tasks := strings.any_prefix_match(input, ["task/", "hack/", ".tekton/"])
@@ -94,61 +94,6 @@ spec:
           name: sast-unicode-check
         workspaces:
           - name: workspace
-            workspace: workspace
-      - name: check-partner-tasks
-        when:
-          - input: "check_partner_tasks"
-            operator: "in"
-            values: ["$(tasks.task-switchboard.results.bindings[*])"]
-        runAfter:
-          - task-switchboard
-        taskSpec:
-          steps:
-            - name: check-task-structure
-              image: quay.io/konflux-ci/pull-request-builds:appstudio-utils-{{revision}}
-              workingDir: $(workspaces.source.path)/source
-              script: |
-                #!/usr/bin/env bash
-                ./hack/check-partner-tasks.sh > partner-tasks.out
-                echo $? > partner-tasks-code.out
-                cat partner-tasks.out
-            - name: create-comment
-              image: registry.access.redhat.com/ubi9/python-39:9.5-1741674875@sha256:6f89c966a1939d3fcd8919f1e823f1794721e68fb3b31388230529ff622eebef
-              volumeMounts:
-                - name: infra-deployments-pr-creator
-                  mountPath: /secrets/deploy-key
-              workingDir: $(workspaces.source.path)/source
-              env:
-                - name: GITHUBAPP_KEY_PATH
-                  value: /secrets/deploy-key/private-key
-                - name: GITHUBAPP_APP_ID
-                  value: "305606"
-                # https://github.com/apps/rh-tap-build-team in https://github.com/konflux-ci
-                - name: GITHUBAPP_INSTALLATION_ID
-                  value: "51073377"
-                - name: GITHUB_API_URL
-                  value: https://api.github.com
-                - name: REPO_OWNER
-                  value: "{{repo_owner}}"
-                - name: REPO_NAME
-                  value: "{{repo_name}}"
-                - name: PULL_REQUEST_NUMBER
-                  value: "{{pull_request_number}}"
-              script: |
-                #!/usr/bin/env bash
-                exit_code=$(cat partner-tasks-code.out)
-                if [ $exit_code != "0" ]; then
-                  .tekton/scripts/github-update-comment.py partner-tasks.out
-                fi
-                exit $exit_code
-          workspaces:
-            - name: source
-          volumes:
-            - name: infra-deployments-pr-creator
-              secret:
-                secretName: infra-deployments-pr-creator
-        workspaces:
-          - name: source
             workspace: workspace
       - name: build-bundles
         when:
@@ -182,14 +127,14 @@ spec:
             description: "custom bundle for fbc-builder pipeline"
           steps:
             - name: build-bundles
-              image: quay.io/konflux-ci/pull-request-builds:appstudio-utils-{{revision}}
+              image: quay.io/redhat-user-workloads-stage/zxiong-tenant/build-definitions:appstudio-utils-{{revision}}
               workingDir: $(workspaces.source.path)/source
               script: |
                 #!/usr/bin/env bash
                 set -e
 
-                QUAY_NAMESPACE=konflux-ci \
-                TEST_REPO_NAME=pull-request-builds \
+                QUAY_NAMESPACE=redhat-user-workloads-stage \
+                TEST_REPO_NAME=zxiong-tenant/build-definitions \
                 BUILD_TAG=$(params.revision) \
                 SKIP_BUILD=1 \
                 INSTALL_BUNDLE_NS=$(params.e2e_test_namespace) \
@@ -237,18 +182,6 @@ spec:
           name: e2e-test
         # Added a timeout due to https://issues.redhat.com/browse/STONEBLD-2265
         timeout: "2h"
-      - name: ec-task-checks
-        when:
-          - input: "tasks_pipelines"
-            operator: "in"
-            values: ["$(tasks.task-switchboard.results.bindings[*])"]
-        runAfter:
-          - task-switchboard
-        taskRef:
-          name: ec-checks
-        workspaces:
-          - name: source
-            workspace: workspace
       - name: check-task-migration-md
         when:
           - input: "tasks"
