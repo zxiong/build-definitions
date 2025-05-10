@@ -114,7 +114,7 @@ spec:
         fi
 
     - name: build
-      image: quay.io/konflux-ci/source-container-build:latest@sha256:070a82c42f05f4fd5e11f3de4bf164869772a04222bbbefbf4b5145b7ae393da
+      image: quay.io/konflux-ci/source-container-build:latest@sha256:c8f18345658c37109d3572deba3111afe407df58472aeaac88bb417bd66d7ea5
       # per https://kubernetes.io/docs/concepts/containers/images/#imagepullpolicy-defaulting
       # the cluster will set imagePullPolicy to IfNotPresent
       computeResources:
