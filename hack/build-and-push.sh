@@ -32,7 +32,7 @@
 
 set -e -o pipefail
 
-VCS_URL=https://github.com/konflux-ci/build-definitions
+VCS_URL=https://github.com/zxiong/build-definitions
 VCS_REF=$(git rev-parse HEAD)
 
 declare -r ARTIFACT_TYPE_TEXT_XSHELLSCRIPT="text/x-shellscript"

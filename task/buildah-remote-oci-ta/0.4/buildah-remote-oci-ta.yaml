@@ -737,6 +737,9 @@ spec:
       find $(cat /shared/container_path) -xtype l -delete
       echo $container > /shared/container_name
       echo "[$(date --utc -Ins)] End remote"
+
+      # export image to an oci-archive
+      buildah push "$IMAGE" oci-archive:/tmp/test-image-oci.tar
     securityContext:
       capabilities:
         add:
@@ -873,7 +876,8 @@ spec:
       echo "Running syft on the source directory"
       syft dir:"/var/workdir/$SOURCE_CODE_DIR/$CONTEXT" --output "$syft_sbom_type"="/var/workdir/sbom-source.json"
       echo "Running syft on the image filesystem"
-      syft dir:"$(cat /shared/container_path)" --output "$syft_sbom_type"="/var/workdir/sbom-image.json"
+      #syft dir:"$(cat /shared/container_path)" --output "$syft_sbom_type"="/var/workdir/sbom-image.json"
+      syft oci-archive:/tmp/test-image-oci.tar --output "$syft_sbom_type"="/var/workdir/sbom-image.json"
 
       echo "[$(date --utc -Ins)] End sbom-syft-generate"
     volumeMounts:

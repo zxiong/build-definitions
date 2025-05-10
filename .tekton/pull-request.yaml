@@ -41,7 +41,7 @@ spec:
           - fetch-repository
         params:
           - name: IMAGE
-            value: quay.io/konflux-ci/pull-request-builds:appstudio-utils-{{revision}}
+            value: quay.io/redhat-user-workloads-stage/zxiong-tenant/build-definitions:appstudio-utils-{{revision}}
           - name: CONTEXT
             value: appstudio-utils
         taskRef:
@@ -64,7 +64,7 @@ spec:
           - name: revision
             value: $(params.revision)
           - name: utils_image
-            value: quay.io/konflux-ci/pull-request-builds:appstudio-utils-{{revision}}
+            value: quay.io/redhat-user-workloads-stage/zxiong-tenant/build-definitions:appstudio-utils-{{revision}}
           - name: expressions
             value:
               - tasks := strings.any_prefix_match(input, ["task/", "hack/", ".tekton/"])
@@ -105,7 +105,7 @@ spec:
         taskSpec:
           steps:
             - name: check-task-structure
-              image: quay.io/konflux-ci/pull-request-builds:appstudio-utils-{{revision}}
+              image: quay.io/redhat-user-workloads-stage/zxiong-tenant/build-definitions:appstudio-utils-{{revision}}
               workingDir: $(workspaces.source.path)/source
               script: |
                 #!/usr/bin/env bash
@@ -182,14 +182,14 @@ spec:
             description: "custom bundle for fbc-builder pipeline"
           steps:
             - name: build-bundles
-              image: quay.io/konflux-ci/pull-request-builds:appstudio-utils-{{revision}}
+              image: quay.io/redhat-user-workloads-stage/zxiong-tenant/build-definitions:appstudio-utils-{{revision}}
               workingDir: $(workspaces.source.path)/source
               script: |
                 #!/usr/bin/env bash
                 set -e
 
-                QUAY_NAMESPACE=konflux-ci \
-                TEST_REPO_NAME=pull-request-builds \
+                QUAY_NAMESPACE=zxiong-tenant \
+                TEST_REPO_NAME=build-definitions \
                 BUILD_TAG=$(params.revision) \
                 SKIP_BUILD=1 \
                 INSTALL_BUNDLE_NS=$(params.e2e_test_namespace) \
