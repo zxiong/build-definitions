@@ -123,7 +123,7 @@ spec:
         requests:
           cpu: 100m
           memory: 256Mi
-      image: quay.io/redhat-appstudio/konflux-test:v1.4.24@sha256:47473fad67b5a5f4c3a701846ebcb0f732344b72aa12ad693d2313319b18930a
+      image: quay.io/redhat-appstudio/konflux-test:v1.4.25@sha256:78f5fd149f6fcd1e8ab8c7227cfb82c1be2eba0bbda49f033b5d82e9154414b2
       results:
       - name: test-output
         description: A skipped tekton result for bundles.
@@ -154,7 +154,7 @@ spec:
           mountPath: /bundle
 
     - name: app-check
-      image: quay.io/opdev/preflight:stable@sha256:8f88ee1e9aca6d966ee3ca51fffeb9e25bc6e885ef7a330efbffdcb5d18a5a15
+      image: quay.io/opdev/preflight:stable@sha256:2066c87a51da97e278b6e6340e0d15dad5cc8f80c136b835756ec8752c2d214d
       args: ["check", "container", "$(params.image-url)"]
       resources:
         limits:
