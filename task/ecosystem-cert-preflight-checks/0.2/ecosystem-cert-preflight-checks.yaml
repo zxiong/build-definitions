@@ -49,6 +49,8 @@ spec:
           description: |
             The process that sets the artifact type. Informational.
             Values from: introspection, parameter.
+        - name: image-arches
+          description: Architectures of the image.
       env:
       - name: PARAM_ARTIFACT_TYPE
         value: $(params.artifact-type)
@@ -142,6 +144,13 @@ spec:
         printf "%s" "${_ARTIFACT_TYPE}" > "$(step.results.artifact-type.path)"
         echo "Introspection concludes that this artifact is of type \"${_ARTIFACT_TYPE}\"."
 
+        # Extract all arches if it's a multi-arch image. The arches will be used in app-check step. 
+        is_multiarch=$(echo "$_RAW_IMAGE_MANIFEST" | jq -r '.manifests? != null')
+        if [ "$is_multiarch" = "true" ]; then
+          arches=$(echo "$_RAW_IMAGE_MANIFEST" | jq -r '.manifests[].platform.architecture' | sort -u)
+          printf "%s" "${arches}" > "$(step.results.image-arches.path)"
+        fi
+
     - name: generate-container-auth
       image: quay.io/konflux-ci/oras:latest@sha256:8d756a91aae1fa5186efafee056446bb5e77228cf5ad9a7ae0e3f8d727da50cd
       env:
@@ -201,7 +210,6 @@ spec:
 
     - name: app-check
       image: quay.io/opdev/preflight:stable@sha256:2066c87a51da97e278b6e6340e0d15dad5cc8f80c136b835756ec8752c2d214d
-      args: ["check", "container", "$(params.image-url)"]
       resources:
         limits:
           memory: 4Gi
@@ -213,6 +221,26 @@ spec:
           value: "$(steps.generate-container-auth.results.auth-json-path)"
         - name: PFLT_KONFLUX
           value: "true"
+        - name: IMAGE_ARCHES
+          value: $(steps.introspect.results.image-arches)
+      script: |
+        #!/usr/bin/env bash
+
+        set -o errexit
+        set -o nounset
+        set -o pipefail
+
+        image_url="$(params.image-url)"
+        if [ -n "${IMAGE_ARCHES:-}" ]; then
+          echo "${IMAGE_ARCHES}"
+          for arch in $IMAGE_ARCHES; do
+            echo "checking architecture: $arch"
+            /usr/local/bin/preflight check container "$image_url" --platform "$arch" &
+          done
+          wait
+        else
+          /usr/local/bin/preflight check container "$image_url"
+        fi
       volumeMounts:
         - name: pfltoutputdir
           mountPath: /artifacts
