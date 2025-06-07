@@ -64,7 +64,7 @@ spec:
         optional: true
   steps:
     - name: sast-shell-check
-      image: quay.io/konflux-ci/konflux-test:v1.4.23@sha256:13b70f25ae28bdde14e381393d70da646aa5de46c39e52fed49ef83753a91c93
+      image: quay.io/konflux-ci/konflux-test:v1.4.27@sha256:5f3200bb9f52c888be99d3eeacde6445b21b731b9216e20259522eba99f9766e
       # per https://kubernetes.io/docs/concepts/containers/images/#imagepullpolicy-defaulting
       # the cluster will set imagePullPolicy to IfNotPresent
       workingDir: $(workspaces.workspace.path)/hacbs/$(context.task.name)
