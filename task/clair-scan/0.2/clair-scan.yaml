@@ -16,6 +16,9 @@ spec:
       description: Image digest to scan.
     - name: image-url
       description: Image URL.
+    - name: image-platform
+      description: The platform built by.
+      default: ""
     - name: docker-auth
       description: unused, should be removed in next task version.
       default: ""
@@ -99,6 +102,8 @@ spec:
           value: $(params.image-url)
         - name: IMAGE_DIGEST
           value: $(params.image-digest)
+        - name: IMAGE_PLATFORM
+          value: $(params.image-platform)
       workingDir: /tekton/home
       script: |
         #!/usr/bin/env bash
@@ -118,23 +123,55 @@ spec:
         # we require in the policy rules, so we resort to running clair-action
         # twice to produce both quay and clair formatted output
         clair_report() {
-          { retry clair-action report --image-ref="$1" --db-path=/tmp/matcher.db --format=quay | tee "clair-result-$2.json"; } && \
-          { retry clair-action report --image-ref="$1" --db-path=/tmp/matcher.db --format=clair > "clair-report-$2.json"; }
+          { retry clair-action report --image-ref="$1" --db-path=/tmp/matcher.db --format=clair | tee  "clair-report-$2.json"; } && \
+          { retry clair-action convert  --file-path="clair-report-$2.json" --format=quay > "clair-result-$2.json"; }
         }
 
-        for sha_file in image-manifest-*.sha; do
-          if [ -e "$sha_file" ]; then
-            arch_sha=$(cat "$sha_file")
-            arch=$(basename "$sha_file" | sed 's/image-manifest-//;s/.sha//')
-            arch_specific_digest="$imagewithouttag@$arch_sha"
+        run_clair_on_arch() {
+          local arch="$1"
+          local sha_file="image-manifest-$arch.sha"
 
-            echo "Running clair-action on $arch image manifest."
-            # run the scan for each image manifest in the image index
-            clair_report "${arch_specific_digest}" "${arch}" || true
+          if [ -e "$sha_file" ]; then
+            local arch_sha
+            arch_sha=$(<"$sha_file")
+            local digest="${imagewithouttag}@${arch_sha}"
+
+            echo "Running clair-action on $arch image manifest..."
+            clair_report "$digest" "$arch" || true
 
             digests_processed+=("\"$arch_sha\"")
+           fi
+        }
+
+        platform="${IMAGE_PLATFORM}"
+
+        # If a platform is specified, extract the architecture and run clair-action on the corresponding image manifest
+        if [ -n "$platform" ]; then
+          arch="${platform#*/}"
+          if [ "$arch" = "x86_64" ] || [ "$arch" = "local" ] || [ "$arch" = "localhost" ]; then
+            arch="amd64"
           fi
-        done
+          # Validate against supported arch list. If it's not a known arch, fallback to amd64
+          case "$arch" in
+            amd64|ppc64le|arm64|s390x)
+              ;;
+            *)
+              echo "Error: Unsupported or malformed architecture: '$arch' (parsed from platform: '$platform')"
+              exit 0
+              ;;
+          esac
+
+          run_clair_on_arch "$arch"
+
+        # If no platform is specified, run clair-action on all available image manifests
+        else
+          for sha_file in image-manifest-*.sha; do
+            if [ -e "$sha_file" ]; then
+              arch=$(basename "$sha_file" | sed 's/image-manifest-//;s/.sha//')
+              run_clair_on_arch "$arch"
+            fi
+          done
+        fi
 
         # If the image is an Image Index, also add the Image Index digest to the list.
         if [[ "${digests_processed[*]}" != *"$IMAGE_DIGEST"* ]]; then
