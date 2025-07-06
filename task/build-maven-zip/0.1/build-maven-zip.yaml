@@ -63,7 +63,7 @@ spec:
         name: shared
 
   steps:
-  - image: quay.io/konflux-ci/appstudio-utils@sha256:3d8660a9d4f59b06a56e32705f91ddd1b9f5fb4c0e7628f7d615daf81da032b5
+  - image: quay.io/konflux-ci/appstudio-utils@sha256:77a889952b08638f9e8bdab7c1ca20846a24a5ba43740dcf76b094e021d34f13
     name: prepare
     computeResources:
       limits:
@@ -101,7 +101,7 @@ spec:
         add:
           - SETFCAP
     workingDir: $(workspaces.source.path)
-  - image: quay.io/konflux-ci/oras:latest@sha256:8d756a91aae1fa5186efafee056446bb5e77228cf5ad9a7ae0e3f8d727da50cd
+  - image: quay.io/konflux-ci/oras:latest@sha256:09e090780ff08f2ebaf0bcac121743880b967241c5e99607c7388a132128d26d
     name: build
     computeResources:
       limits:
