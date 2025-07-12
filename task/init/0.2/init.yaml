@@ -25,7 +25,7 @@ spec:
 
   steps:
     - name: init
-      image: registry.access.redhat.com/ubi9/skopeo:9.6-1747642001@sha256:d2f9cec0697dc8f20d0dc5b5793b60e809584877ddfef61e445aada3cf3abcf9
+      image: registry.access.redhat.com/ubi9/skopeo:9.6-1751965053@sha256:71b9f80d85b9b0092194d4ce8c00698cf2187336db91a82fd878e20d061ce472
       computeResources:
         limits:
           memory: 256Mi
