@@ -128,7 +128,7 @@ spec:
         chmod -R g+w "$TARGET_OCI"
 
     - name: copy-model-files
-      image: registry.access.redhat.com/ubi9/python-311:9.6-1754318683
+      image: registry.access.redhat.com/ubi9/python-311:9.6-1755749751
       workingDir: /var/workdir
       env:
         - name: OLOT_VERSION
