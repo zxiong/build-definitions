@@ -65,7 +65,7 @@ spec:
       value: $(params.BUILD_ARGS_FILE)
   steps:
   - name: build
-    image: registry.access.redhat.com/ubi9/buildah@sha256:9cbe13fde4c32fd8ddc45c70fdbc2d1d9400e9e5f30993131d001adee0559d00
+    image: registry.access.redhat.com/ubi9/buildah@sha256:18453ab0a62154283aaf4c45efd7543d1c8ecca1aebae46dedc7ddc0f410b232
     args:
       - $(params.BUILD_ARGS[*])
     script: |
@@ -151,7 +151,7 @@ spec:
       name: tmpfiles
 
   - name: merge-sboms
-    image: registry.access.redhat.com/ubi8/python-311@sha256:476762482c8f204dd9624881653cdca9827c94d16e0d74eb5f79baa4b7a18979
+    image: registry.access.redhat.com/ubi8/python-311@sha256:d945073107247ecbe0bc96627eb457e3b697164fe5954b12cf095eb0dd9d8473
     env:
       - name: RESULT_PATH
         value: $(results.SBOM_BLOB_URL.path)

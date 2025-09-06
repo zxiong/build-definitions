@@ -193,7 +193,7 @@ spec:
       value: $(workspaces.basic-auth.path)
     - name: CHECKOUT_DIR
       value: /var/workdir/source
-    image: quay.io/konflux-ci/git-clone@sha256:4e53ebd9242f05ca55bfc8d58b3363d8b9d9bc3ab439d9ab76cdbdf5b1fd42d9
+    image: quay.io/konflux-ci/git-clone@sha256:bbce380c0ea071390757ffa1a6a8c4c8bd3c07007816f7489527114d48b54ed5
     name: clone
     script: |
       #!/usr/bin/env sh
@@ -320,7 +320,7 @@ spec:
       value: $(params.enableSymlinkCheck)
     - name: CHECKOUT_DIR
       value: /var/workdir/source
-    image: quay.io/konflux-ci/git-clone@sha256:4e53ebd9242f05ca55bfc8d58b3363d8b9d9bc3ab439d9ab76cdbdf5b1fd42d9
+    image: quay.io/konflux-ci/git-clone@sha256:bbce380c0ea071390757ffa1a6a8c4c8bd3c07007816f7489527114d48b54ed5
     name: symlink-check
     script: |
       #!/usr/bin/env bash
@@ -386,7 +386,7 @@ spec:
     env:
     - name: IMAGE_EXPIRES_AFTER
       value: $(params.ociArtifactExpiresAfter)
-    image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:1b744ca303ae1e017e15921c74130ae2b6760712d4ce129901dea3bc14c6092c
+    image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:120b168e59efa5aa72eebdb088808cee3398b1d06e040be046939f01182869b4
     name: create-trusted-artifact
     volumeMounts:
     - mountPath: /var/workdir
