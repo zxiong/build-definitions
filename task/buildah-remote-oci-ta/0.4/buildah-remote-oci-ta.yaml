@@ -248,7 +248,7 @@ spec:
     - name: YUM_REPOS_D_TARGET
       value: $(params.YUM_REPOS_D_TARGET)
     - name: BUILDER_IMAGE
-      value: quay.io/konflux-ci/buildah-task:latest@sha256:121ccc64ade7c25fa85e9476d6a318d0020afb159cfc0217c082c04261b3bfdf
+      value: quay.io/konflux-ci/buildah-task:latest@sha256:cb58912cc9aecdb4c64e353ac44d0586574e89ba6cec2f2b191b4eeb98c6f81e
     - name: PLATFORM
       value: $(params.PLATFORM)
     - name: IMAGE_APPEND_PLATFORM
@@ -264,7 +264,7 @@ spec:
     - $(params.SOURCE_ARTIFACT)=/var/workdir/source
     - $(params.CACHI2_ARTIFACT)=/var/workdir/cachi2
     computeResources: {}
-    image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:1b744ca303ae1e017e15921c74130ae2b6760712d4ce129901dea3bc14c6092c
+    image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:120b168e59efa5aa72eebdb088808cee3398b1d06e040be046939f01182869b4
     name: use-trusted-artifact
     volumeMounts:
     - mountPath: /etc/pki/tls/certs/ca-custom-bundle.crt
@@ -289,7 +289,7 @@ spec:
       value: $(params.COMMIT_SHA)
     - name: DOCKERFILE
       value: $(params.DOCKERFILE)
-    image: quay.io/konflux-ci/buildah-task:latest@sha256:121ccc64ade7c25fa85e9476d6a318d0020afb159cfc0217c082c04261b3bfdf
+    image: quay.io/konflux-ci/buildah-task:latest@sha256:cb58912cc9aecdb4c64e353ac44d0586574e89ba6cec2f2b191b4eeb98c6f81e
     name: build
     script: |-
       #!/bin/bash
@@ -822,7 +822,7 @@ spec:
       value: $(params.BUILDAH_FORMAT)
     - name: TASKRUN_NAME
       value: $(context.taskRun.name)
-    image: quay.io/konflux-ci/buildah-task:latest@sha256:121ccc64ade7c25fa85e9476d6a318d0020afb159cfc0217c082c04261b3bfdf
+    image: quay.io/konflux-ci/buildah-task:latest@sha256:cb58912cc9aecdb4c64e353ac44d0586574e89ba6cec2f2b191b4eeb98c6f81e
     name: push
     script: |
       #!/bin/bash
@@ -903,7 +903,7 @@ spec:
       readOnly: true
     workingDir: /var/workdir
   - computeResources: {}
-    image: registry.access.redhat.com/rh-syft-tech-preview/syft-rhel9:1.19.0@sha256:070ecb89de5104bb64fbf399a991a975e7d4d7e0cea0f7beb1e591b5591991c8
+    image: registry.access.redhat.com/rh-syft-tech-preview/syft-rhel9:1.29.0@sha256:15ed82f0b5311a570ccb8ea02135d9776c6d61e545c51b256b3fc5b5db20ba67
     name: sbom-syft-generate
     script: |
       #!/bin/bash
