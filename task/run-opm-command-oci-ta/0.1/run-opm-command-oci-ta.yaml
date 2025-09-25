@@ -81,7 +81,7 @@ spec:
         - "bash"
         - $(params.OPM_ARGS[*])
     - name: use-trusted-artifact
-      image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:635a890e9f0211b4eb5b8c811d6f06b3ed9ff7da952ebad236fbfe52ba36dbf7
+      image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:adf22f3ec90bfa3f7e2c832a7d52febd1ea31aa9fff6db21324c965d7d622327
       args:
         - use
         - $(params.SOURCE_ARTIFACT)=/var/workdir/source
@@ -90,7 +90,7 @@ spec:
           operator: in
           values: ["true"]
     - name: run-opm-with-user-args
-      image: quay.io/konflux-ci/operator-sdk-builder:latest@sha256:e7cfe742ef5be036478408e98094f49109474418521970f739a6c1ff6faa4267
+      image: quay.io/konflux-ci/operator-sdk-builder:latest@sha256:e08de236089a3756535b5be1abacc3f465b1f5771efd8a40c7a2dae4febd67d7
       workingDir: /var/workdir/source
       when:
         - input: "$(steps.check-and-skip-if-needed.results.valid_params)"
@@ -166,7 +166,7 @@ spec:
           cpu: 1
           memory: 4Gi
     - name: replace-related-images-pullspec-in-catalog
-      image: quay.io/konflux-ci/konflux-test:v1.4.33@sha256:f1e256d52ec62f8927106659d65fc842e330d3cfed791775c1ef4fedf270dbc8
+      image: quay.io/konflux-ci/konflux-test:v1.4.39@sha256:89cdc9d251e15d07018548137b4034669df8e9e2b171a188c8b8201d3638cb17
       workingDir: /var/workdir/source
       securityContext:
         runAsUser: 0
@@ -200,7 +200,7 @@ spec:
           cpu: 1
           memory: 2Gi
     - name: create-trusted-artifact
-      image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:edd8e3affc389320b15b9de8a5aedbf7b0463211b77c981563a2cfa20076b0c0
+      image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:adf22f3ec90bfa3f7e2c832a7d52febd1ea31aa9fff6db21324c965d7d622327
       env:
       - name: IMAGE_EXPIRES_AFTER
         value: $(params.ociArtifactExpiresAfter)
