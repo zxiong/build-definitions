@@ -21,7 +21,7 @@ spec:
         - SETFCAP
   env:
     - name: MAX_PARALLEL
-      value: "5"
+      value: "$(params.MAX_PARALLEL)"
   script: |
     #!/usr/bin/env bash
     set -euxo pipefail
