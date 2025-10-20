@@ -11,6 +11,11 @@ metadata:
 spec:
   description: >-
     This stepAction scans relatedImages of operator bundle image builds for FIPS compliance using the check-payload tool.
+  params:
+    - name: MAX_PARALLEL
+      description: Max parallel scans
+      type: string
+      default: "5"
   results:
     - name: TEST_OUTPUT
       description: Tekton task test output.
@@ -19,9 +24,6 @@ spec:
     capabilities:
       add:
         - SETFCAP
-  env:
-    - name: MAX_PARALLEL
-      value: "$(params.MAX_PARALLEL)"
   script: |
     #!/usr/bin/env bash
     set -euxo pipefail
