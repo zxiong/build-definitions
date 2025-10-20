@@ -25,7 +25,6 @@ spec:
   script: |
     #!/usr/bin/env bash
     set -euxo pipefail
-    trap 'echo "ERROR on line $LINENO"; cat /tekton/termination' ERR
     # shellcheck source=/dev/null
     . /utils.sh
 
@@ -36,7 +35,7 @@ spec:
 
     export RETRY_COUNT=2
     export RETRY_INTERVAL=5
-    export MAX_PARALLEL="${MAX_PARALLEL:-4}"  # configurable parallelism
+    export MAX_PARALLEL="${MAX_PARALLEL:-5}"
 
     # Function to clean up OCI image and unpacked directory
     cleanup_image_artifacts() {
@@ -81,6 +80,8 @@ spec:
       local total="$3"
       local tmp_log="/tekton/home/image-${index}.log"
       local result_flag="/tekton/home/result-${index}.flag"
+
+      trap 'echo "ERROR on line $LINENO in process_image"; echo "error" > "$result_flag"' ERR
 
       {
         related_image="${related_image//$'\n'/}"
@@ -189,11 +190,13 @@ spec:
       } &> "$tmp_log"
     }
 
+    total_images=${#related_images[@]}
+    parallel_limit=$(( MAX_PARALLEL < total_images ? MAX_PARALLEL : total_images ))
     declare -i count=0
     for related_image in "${related_images[@]}"; do
       count+=1
       # Limit parallel jobs
-      while (( $(jobs -rp | wc -l) >= MAX_PARALLEL )); do
+      while (( $(jobs -rp | wc -l) >= parallel_limit )); do
         sleep 1
       done
       process_image "$related_image" "$count" "${#related_images[@]}" &
