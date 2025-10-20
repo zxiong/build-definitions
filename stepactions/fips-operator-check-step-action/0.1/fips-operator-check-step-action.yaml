@@ -81,8 +81,6 @@ spec:
       local tmp_log="/tekton/home/image-${index}.log"
       local result_flag="/tekton/home/result-${index}.flag"
 
-      trap 'echo "ERROR on line $LINENO in process_image"; echo "error" > "$result_flag"' ERR
-
       {
         related_image="${related_image//$'\n'/}"
         echo "Processing related image ${index} of ${total}: ${related_image}"
