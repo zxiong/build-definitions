@@ -24,7 +24,8 @@ spec:
       value: "5"
   script: |
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -euxo pipefail
+    trap 'echo "ERROR on line $LINENO"; cat /tekton/termination' ERR
     # shellcheck source=/dev/null
     . /utils.sh
 
