@@ -202,8 +202,14 @@ spec:
       process_image "$related_image" "$count" "${#related_images[@]}" &
     done
 
-    # Wait for all parallel jobs to complete
-    wait
+    # Wait for all background jobs and fail if any job failed
+    wait_status=0
+    for job in $(jobs -p); do
+      wait $job || wait_status=1
+    done
+
+    # Exit with non-zero only if any background job failed
+    [[ $wait_status -ne 0 ]] && exit 1
 
     # Aggregate results
     for f in /tekton/home/result-*.flag; do
