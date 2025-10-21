@@ -216,15 +216,15 @@ spec:
     cat /tekton/home/result-1.flag
 
     # Aggregate results
-    for f in /tekton/home/result-*.flag; do
-      [[ ! -f "$f" ]] && continue
-      case "$(cat "$f")" in
-        success) ((success_counter++)) ;;
-        warning) ((warnings_counter++)) ;;
-        failure) ((failure_counter++)) ;;
-        error)   ((error_counter++)) ;;
-      esac
-    done
+    #for f in /tekton/home/result-*.flag; do
+    #  [[ ! -f "$f" ]] && continue
+    #  case "$(cat "$f")" in
+    #    success) ((success_counter++)) ;;
+    #    warning) ((warnings_counter++)) ;;
+    #    failure) ((failure_counter++)) ;;
+    #    error)   ((error_counter++)) ;;
+    #  esac
+    #done
 
     note="Task $(context.task.name) failed: Some images could not be scanned. For details, check Tekton task log."
     ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
