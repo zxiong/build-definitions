@@ -189,7 +189,8 @@ spec:
             cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
           fi
         fi
-      } &> "$tmp_log"
+      } &
+      #} &> "$tmp_log"
     }
 
     total_images=${#related_images[@]}
