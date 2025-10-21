@@ -29,7 +29,7 @@ spec:
         - SETFCAP
   script: |
     #!/usr/bin/env bash
-    set -euxo pipefail
+    set -euo pipefail
     # shellcheck source=/dev/null
     . /utils.sh
 
