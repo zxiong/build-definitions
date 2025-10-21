@@ -15,7 +15,7 @@ spec:
     - name: MAX_PARALLEL
       description: Max parallel scans
       type: string
-      default: "5"
+      default: "1"
   results:
     - name: TEST_OUTPUT
       description: Tekton task test output.
@@ -37,7 +37,7 @@ spec:
 
     export RETRY_COUNT=2
     export RETRY_INTERVAL=5
-    export MAX_PARALLEL="${MAX_PARALLEL:-5}"
+    export MAX_PARALLEL="${MAX_PARALLEL:-1}"
 
     # Function to clean up OCI image and unpacked directory
     cleanup_image_artifacts() {
