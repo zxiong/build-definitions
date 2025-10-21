@@ -215,6 +215,7 @@ spec:
     # Aggregate results
     for f in /tekton/home/result-*.flag; do
       [[ ! -f "$f" ]] && continue
+      cat "$f"
       case "$(cat "$f")" in
         success) ((++success_counter)) ;;
         warning) ((++warnings_counter)) ;;
