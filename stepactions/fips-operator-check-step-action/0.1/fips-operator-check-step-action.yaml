@@ -211,6 +211,8 @@ spec:
     # Exit with non-zero only if any background job failed
     [[ $wait_status -ne 0 ]] && exit 1
 
+    ls -lrt /tekton/home/result-*
+
     # Aggregate results
     for f in /tekton/home/result-*.flag; do
       [[ ! -f "$f" ]] && continue
