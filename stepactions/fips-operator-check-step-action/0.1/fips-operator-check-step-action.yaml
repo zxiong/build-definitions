@@ -15,7 +15,7 @@ spec:
     - name: MAX_PARALLEL
       description: Max parallel scans
       type: string
-      default: "1"
+      default: "4"
   results:
     - name: TEST_OUTPUT
       description: Tekton task test output.
