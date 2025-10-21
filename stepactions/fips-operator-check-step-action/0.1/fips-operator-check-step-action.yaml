@@ -213,6 +213,8 @@ spec:
 
     ls -lrt /tekton/home/result-*
 
+    cat /tekton/home/result-1.flag
+
     # Aggregate results
     for f in /tekton/home/result-*.flag; do
       [[ ! -f "$f" ]] && continue
