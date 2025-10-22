@@ -91,8 +91,10 @@ spec:
       set -o pipefail
 
       local related_image="$1"
+      local count="$2"
+      local total="$3"
       # All logging goes to stderr to keep stdout clean for result
-      echo "Processing: ${related_image}" >&2
+      echo "Processing related image ${count} of ${total}: ${related_image}" >&2
 
       image_accessible=0
       if ! image_labels=$(get_image_labels "$related_image"); then
@@ -210,18 +212,16 @@ spec:
     # Temp file to store results from parallel jobs
     RESULTS_FILE=$(mktemp)
 
-    # --- Parallel Execution ---
+    # Execute in parallel
     declare -i count=0
     for related_image in "${related_images[@]}"; do
       related_image="${related_image//$'\n'/}"
       count+=1
-      # Log queueing message to main stderr
-      echo "Queueing image ${count} of ${#related_images[@]}: ${related_image}" >&2
 
       # Run the process in the background.
       # Redirect its stdout (the result string) to the results file.
       # Its stderr (logs) will go to the main script's stderr.
-      process_image "$related_image" >> "$RESULTS_FILE" &
+      process_image "$related_image" "${count}" "${#related_images[@]}" >> "$RESULTS_FILE" &
 
       # Throttle: Wait if we've hit the max parallel job limit
       while (( $(jobs -r -p | wc -l) >= MAX_PARALLEL_JOBS )); do
@@ -234,8 +234,7 @@ spec:
     wait
     echo "All jobs finished. Aggregating results." >&2
 
-    # --- Result Aggregation ---
-    # Read the results file and increment original counters
+    # Aggregate results
     while read -r result; do
       case "$result" in
         SUCCESS) success_counter=$((success_counter + 1)) ;;
@@ -247,12 +246,6 @@ spec:
     
     # Clean up the temp file
     rm "$RESULTS_FILE"
-
-    echo "Final counts:" >&2
-    echo "Success: $success_counter" >&2
-    echo "Warning: $warnings_counter" >&2
-    echo "Error:   $error_counter" >&2
-    echo "Failure: $failure_counter" >&2
 
     note="Task $(context.task.name) failed: Some images could not be scanned. For details, check Tekton task log."
     ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
