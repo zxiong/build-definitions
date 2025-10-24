@@ -21,7 +21,7 @@ spec:
         - SETFCAP
   script: |
     #!/usr/bin/env bash
-    set -euo pipefail
+    set -euox pipefail
     # shellcheck source=/dev/null
     . /utils.sh
 
