@@ -27,7 +27,6 @@ spec:
     capabilities:
       add:
         - SETFCAP
-    pidsLimit: 4096
   script: |
     #!/usr/bin/env bash
     set -euo pipefail
