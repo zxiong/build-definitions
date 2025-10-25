@@ -159,7 +159,7 @@ spec:
       optional: true
   steps:
     - name: clone
-      image: quay.io/konflux-ci/git-clone@sha256:bd303d16e9d9b01622d69deff77c583ebdea36611b15dc243da658d93763e8de
+      image: quay.io/konflux-ci/git-clone@sha256:8398a89bc2c6124dca4ffc66ffb2aa6d8f7acb3af9b1a51580abd3a66918a0ea
       volumeMounts:
         - mountPath: /mnt/trusted-ca
           name: trusted-ca
@@ -324,7 +324,7 @@ spec:
       securityContext:
         runAsUser: 0
     - name: symlink-check
-      image: quay.io/konflux-ci/git-clone@sha256:bd303d16e9d9b01622d69deff77c583ebdea36611b15dc243da658d93763e8de
+      image: quay.io/konflux-ci/git-clone@sha256:8398a89bc2c6124dca4ffc66ffb2aa6d8f7acb3af9b1a51580abd3a66918a0ea
       volumeMounts:
         - mountPath: /var/workdir
           name: workdir
@@ -356,7 +356,7 @@ spec:
           check_symlinks
         fi
     - name: create-trusted-artifact
-      image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:2448b17953dc15faae0996f833286521b24f01bf0281338008e84724c430b41d
+      image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:aa601d847eafa87747894b770eff43b47cffe2cc39059bb345ee58b378473b8f
       args:
         - create
         - --store
