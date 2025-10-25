@@ -34,8 +34,8 @@ spec:
     parse_image_url() {
       local image_url=$1
       if [ -z "$image_url" ]; then
-	echo "parse_image_url: Missing positional parameter \$1 (image url)" >&2
-	exit 2
+	    echo "parse_image_url: Missing positional parameter \$1 (image url)" >&2
+	    exit 2
       fi
 
       local digest=""
@@ -47,15 +47,15 @@ spec:
       local at_number="${#temp_ats}"
 
       if [[ $at_number == 1 ]]; then
-	# Get digest: ${image_url##*@} keeps everything after the last @
-	digest="${image_url##*@}"
-	# Get repo: ${image_url%@*} removes everything after and including the last @
-	registry_repository="${image_url%@*}"
+	    # Get digest: ${image_url##*@} keeps everything after the last @
+	    digest="${image_url##*@}"
+	    # Get repo: ${image_url%@*} removes everything after and including the last @
+	    registry_repository="${image_url%@*}"
       elif [[ $at_number != 0 ]]; then
-	echo "parse_image_url: $image_url does not match format" >&2
-	exit 3
+	    echo "parse_image_url: $image_url does not match format" >&2
+	    exit 3
       else
-	registry_repository="$image_url"
+	    registry_repository="$image_url"
       fi
 
       # Count ':' chars in the repo part
@@ -63,20 +63,20 @@ spec:
       local colon_number="${#temp_colons}"
 
       if [[ $colon_number == 1 ]]; then
-	# Get potential tag: ${registry_repository##*:}
-	local potential_tag="${registry_repository##*:}"
-	# Check if it's a valid tag vs. a port number
-	if [[ "$potential_tag" =~ ^([a-zA-Z0-9_][a-zA-Z0-9._-]{0,127})$ ]]; then
-	  tag="$potential_tag"
-	  registry_repository="${registry_repository%:*}"
-	fi
+	    # Get potential tag: ${registry_repository##*:}
+	    local potential_tag="${registry_repository##*:}"
+	    # Check if it's a valid tag vs. a port number
+	    if [[ "$potential_tag" =~ ^([a-zA-Z0-9_][a-zA-Z0-9._-]{0,127})$ ]]; then
+	      tag="$potential_tag"
+	      registry_repository="${registry_repository%:*}"
+	    fi
       elif [[ $colon_number == 2 ]]; then
-	# Format is registry:port/repository:tag
-	tag="${registry_repository##*:}"
-	registry_repository="${registry_repository%:*}"
+	    # Format is registry:port/repository:tag
+	    tag="${registry_repository##*:}"
+	    registry_repository="${registry_repository%:*}"
       elif [[ $colon_number != 0 ]]; then
-	echo "parse_image_url: $image_url does not match format" >&2
-	exit 3
+	    echo "parse_image_url: $image_url does not match format" >&2
+	    exit 3
       fi
 
       echo -n "{\"registry_repository\": \"$registry_repository\", \"tag\": \"$tag\", \"digest\": \"$digest\"}"
@@ -88,8 +88,8 @@ spec:
       local mirror="$2"
 
       if [[ -z "$image" || -z "$mirror" ]]; then
-	echo "replace_image_pullspec: Usage: replace_image_pullspec <image> <mirror>" >&2
-	exit 2
+	    echo "replace_image_pullspec: Usage: replace_image_pullspec <image> <mirror>" >&2
+	    exit 2
       fi
 
       local digest=""
@@ -97,18 +97,18 @@ spec:
 
       # Check for digest: ${image##*@}
       if [[ "$image" == *@* ]]; then
-	digest="@${image##*@}"
-	# Remove digest part: ${image%@*}
-	image="${image%@*}"
+	    digest="@${image##*@}"
+	    # Remove digest part: ${image%@*}
+	    image="${image%@*}"
       fi
 
       # Check for tag: ${image##*:}
       if [[ "$image" == *:* ]]; then
-	local potential_tag="${image##*:}"
-	# Check if it's a tag and not a port in the repo name
-	if [[ "$potential_tag" =~ ^([a-zA-Z0-9_][a-zA-Z0-9._-]{0,127})$ ]]; then
-	  tag=":${potential_tag}"
-	fi
+	    local potential_tag="${image##*:}"
+	    # Check if it's a tag and not a port in the repo name
+	    if [[ "$potential_tag" =~ ^([a-zA-Z0-9_][a-zA-Z0-9._-]{0,127})$ ]]; then
+	      tag=":${potential_tag}"
+	    fi
       fi
 
       echo -n "${mirror}${tag}${digest}"
@@ -137,7 +137,6 @@ spec:
       parse_image_url "$image_url" | jq -jr '.registry_repository + if .digest != "" then "@" + .digest else "" end'
     }
     # --- END REPLACEMENT FUNCTIONS ---
-
 
     success_counter=0
     warnings_counter=0
