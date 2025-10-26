@@ -26,6 +26,7 @@ spec:
   script: |
     #!/usr/bin/env bash
     set -euo pipefail
+    trap 'wait' EXIT
     # shellcheck source=/dev/null
     #curl -k https://raw.githubusercontent.com/zxiong/konflux-test/refs/heads/test-mitigate-zombie-process/test/utils.sh > /utils.sh
     . /utils.sh
