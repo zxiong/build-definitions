@@ -17,7 +17,8 @@ spec:
   env:
     - name: GOMAXPROCS 
       value: "1"
-  image: quay.io/konflux-ci/konflux-test:v1.4.34@sha256:62a7bf68015c711e0eb0698c10d203d0393a8e0efa09306f1fce543dea383f3c
+  #image: quay.io/konflux-ci/konflux-test:v1.4.34@sha256:62a7bf68015c711e0eb0698c10d203d0393a8e0efa09306f1fce543dea383f3c
+  image: quay.io/konflux-ci/konflux-test:v1.4.40@sha256:99eb8bcc7bcb35bdd5edea7b0ac333bbdb67586dea6b4dab92baf2b8fb32bf2c
   securityContext:
     capabilities:
       add:
@@ -26,7 +27,7 @@ spec:
     #!/usr/bin/env bash
     set -euo pipefail
     # shellcheck source=/dev/null
-    curl -k https://raw.githubusercontent.com/zxiong/konflux-test/refs/heads/test-mitigate-zombie-process/test/utils.sh > /utils.sh
+    #curl -k https://raw.githubusercontent.com/zxiong/konflux-test/refs/heads/test-mitigate-zombie-process/test/utils.sh > /utils.sh
     . /utils.sh
 
     success_counter=0
