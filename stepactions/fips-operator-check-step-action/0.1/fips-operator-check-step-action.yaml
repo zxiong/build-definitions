@@ -152,7 +152,7 @@ spec:
       echo "Successfully sanitized image reference: ${sanitized_related_image}. Using sanitized image reference for conversion to OCI format"
 
       # Convert image to OCI format since umoci can only handle the OCI format
-      if ! retry skopeo copy --remove-signatures --signature-verification=false "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
+      if ! retry skopeo copy --remove-signatures --src-tls-verify=false --dest-tls-verify=false "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
         echo -e "Error: Unable to scan image: Could not convert image ${related_image} to OCI format\n"
         # Clean up any partial OCI image artifacts to prevent resource accumulation
         cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
