@@ -25,6 +25,7 @@ spec:
         - SETFCAP
   script: |
     #!/usr/bin/env bash
+    trap 'while wait -n 2>/dev/null; do :; done' SIGCHLD
     set -euo pipefail
     # shellcheck source=/dev/null
     #curl -k https://raw.githubusercontent.com/zxiong/konflux-test/refs/heads/test-mitigate-zombie-process/test/utils.sh > /utils.sh
@@ -197,7 +198,7 @@ spec:
         fi
       fi
 
-      sleep 1 
+      gpgconf --kill all 2>/dev/null || true
     done
 
     note="Task $(context.task.name) failed: Some images could not be scanned. For details, check Tekton task log."
