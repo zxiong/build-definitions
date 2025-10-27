@@ -27,6 +27,8 @@ spec:
     #!/usr/bin/env bash
     trap 'while wait -n 2>/dev/null; do :; done' SIGCHLD
     set -euo pipefail
+    export GNUPGHOME=/dev/null
+    export SKOPEO_REGPATH=/dev/null
     # shellcheck source=/dev/null
     #curl -k https://raw.githubusercontent.com/zxiong/konflux-test/refs/heads/test-mitigate-zombie-process/test/utils.sh > /utils.sh
     . /utils.sh
