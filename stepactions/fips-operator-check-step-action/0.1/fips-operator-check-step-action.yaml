@@ -25,11 +25,8 @@ spec:
         - SETFCAP
   script: |
     #!/usr/bin/env bash
-    trap 'while wait -n 2>/dev/null; do :; done' SIGCHLD
     set -euo pipefail
-    export GNUPGHOME=/dev/null
-    export SKOPEO_REGPATH=/dev/null
-    echo "=============disable signature verification==========="
+    echo "============= removing retry =============="
     # shellcheck source=/dev/null
     #curl -k https://raw.githubusercontent.com/zxiong/konflux-test/refs/heads/test-mitigate-zombie-process/test/utils.sh > /utils.sh
     . /utils.sh
@@ -152,7 +149,7 @@ spec:
       echo "Successfully sanitized image reference: ${sanitized_related_image}. Using sanitized image reference for conversion to OCI format"
 
       # Convert image to OCI format since umoci can only handle the OCI format
-      if ! retry skopeo copy --remove-signatures --src-tls-verify=false --dest-tls-verify=false "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
+      if ! skopeo copy --remove-signatures "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
         echo -e "Error: Unable to scan image: Could not convert image ${related_image} to OCI format\n"
         # Clean up any partial OCI image artifacts to prevent resource accumulation
         cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
@@ -201,7 +198,6 @@ spec:
         fi
       fi
 
-      gpgconf --kill all 2>/dev/null || true
     done
 
     note="Task $(context.task.name) failed: Some images could not be scanned. For details, check Tekton task log."
