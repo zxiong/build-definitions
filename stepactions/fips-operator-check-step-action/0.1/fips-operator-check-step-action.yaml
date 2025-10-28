@@ -26,7 +26,7 @@ spec:
     . /utils.sh
 
     SKOPEO="/tmp/skopeo"
-    curl -L -o "$SKOPEO" https://github.com/containers/skopeo/releases/latest/download/skopeo-linux-amd64
+    curl -L -o "$SKOPEO" https://github.com/lework/skopeo-binary/releases/download/v1.20.0/skopeo-linux-amd64
     chmod +x "$SKOPEO" 
 
     success_counter=0
@@ -185,10 +185,10 @@ spec:
         fi
       fi
 
-      echo "killing gpg-agent gpgconf scdaemon..."
-      for p in gpg-agent gpgconf scdaemon; do
-        pkill -9 "$p" || true
-      done
+      #echo "killing gpg-agent gpgconf scdaemon..."
+      #for p in gpg-agent gpgconf scdaemon; do
+      #  pkill -9 "$p" || true
+      #done
 
     done
 
