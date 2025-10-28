@@ -25,6 +25,10 @@ spec:
     # shellcheck source=/dev/null
     . /utils.sh
 
+    SKOPEO="/tmp/skopeo"
+    curl -L -o "$SKOPEO" https://github.com/containers/skopeo/releases/latest/download/skopeo-linux-amd64
+    chmod +x "$SKOPEO" 
+
     success_counter=0
     warnings_counter=0
     error_counter=0
@@ -132,7 +136,7 @@ spec:
       echo "Successfully sanitized image reference: ${sanitized_related_image}. Using sanitized image reference for conversion to OCI format"
 
       # Convert image to OCI format since umoci can only handle the OCI format
-      if ! retry skopeo copy --remove-signatures "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
+      if ! retry "$SKOPEO" copy --remove-signatures "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
         echo -e "Error: Unable to scan image: Could not convert image ${related_image} to OCI format\n"
         # Clean up any partial OCI image artifacts to prevent resource accumulation
         cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
@@ -180,6 +184,11 @@ spec:
           cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
         fi
       fi
+
+      echo "killing gpg-agent gpgconf scdaemon..."
+      for p in gpg-agent gpgconf scdaemon; do
+        pkill -9 "$p" || true
+      done
 
     done
 
