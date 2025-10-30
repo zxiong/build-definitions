@@ -11,10 +11,18 @@ metadata:
 spec:
   description: >-
     This stepAction scans relatedImages of operator bundle image builds for FIPS compliance using the check-payload tool.
+  params:
+    - name: MAX_PARALLEL
+      description: Max number of parallel
+      type: string
+      default: "5"
   results:
     - name: TEST_OUTPUT
       description: Tekton task test output.
-  image: quay.io/konflux-ci/konflux-test:v1.4.34@sha256:62a7bf68015c711e0eb0698c10d203d0393a8e0efa09306f1fce543dea383f3c
+  image: quay.io/zxiong/konflux-test:v1.4.40@sha256:755012e60a1af23d76e7349557b7fc8addc200d8099fd66afa03957b6faf8f65
+  env:
+    - name: PARALLEL_JOBS
+      value: $(params.MAX_PARALLEL)
   securityContext:
     capabilities:
       add:
@@ -43,6 +51,8 @@ spec:
       # Clean up unpacked directory (may or may not exist depending on failure point)
       rm -rf "/tekton/home/unpacked-${component_label}-${version_label}-${release_label}" 2>/dev/null || true
     }
+    # Export for subshells
+    export -f cleanup_image_artifacts
 
     if [ ! -e "/tekton/home/unique_related_images.txt" ]; then
       echo "No relatedImages to process"
@@ -60,6 +70,8 @@ spec:
       check_payload_version="-V=${version}"
       echo "Target OCP version found: ${check_payload_version}"
     fi
+    # Export for subshells
+    export check_payload_version
 
     # Check if an image to mirror map is defined for unreleased images
     image_mirror_map=""
@@ -68,31 +80,40 @@ spec:
       echo "Image Mirror Map found:"
       echo "${image_mirror_map}" | jq '.'
     fi
+    # Export for subshells
+    export image_mirror_map
 
-    declare -i count=0
-    for related_image in "${related_images[@]}"; do
-      related_image="${related_image//$'\n'/}"
-      count+=1
-      echo "Processing related image ${count} of ${#related_images[@]}: ${related_image}"
+    # Define the processing function
+    process_image() {
+      # Source utils and set pipefail in the subshell
+      # shellcheck source=/dev/null
+      . /utils.sh
+      set -o pipefail
+
+      local related_image="$1"
+      local count="$2"
+      local total="$3"
+      # All logging goes to stderr to keep stdout clean for result
+      echo "Processing related image ${count} of ${total}: ${related_image}" >&2
 
       image_accessible=0
       if ! image_labels=$(get_image_labels "$related_image"); then
-        echo "Could not inspect original pullspec $related_image. Checking if there's a mirror present"
+        echo "Could not inspect original pullspec $related_image. Checking if there's a mirror present" >&2
         if [ -n "${image_mirror_map}" ]; then
           reg_and_repo=$(get_image_registry_and_repository "${related_image}")
           mapfile -t mirrors < <(echo "${image_mirror_map}" | jq -r --arg image "${reg_and_repo}" '.[$image][]')
-          echo "Mirrors for $reg_and_repo are:"
-          printf "%s\n" "${mirrors[@]}"
+          echo "Mirrors for $reg_and_repo are:" >&2
+          printf "%s\n" "${mirrors[@]}" >&2
 
           for mirror in "${mirrors[@]}"; do
-            echo "Attempting to use mirror ${mirror}"
+            echo "Attempting to use mirror ${mirror}" >&2
             replaced_image=$(replace_image_pullspec "$related_image" "$mirror")
             if ! image_labels=$(get_image_labels "$replaced_image"); then
-              echo "Mirror $mirror is inaccessible."
+              echo "Mirror $mirror is inaccessible." >&2
               continue
             fi
             image_accessible=1
-            echo "Replacing $related_image with $replaced_image"
+            echo "Replacing $related_image with $replaced_image" >&2
             related_image="$replaced_image"
             break
           done
@@ -100,25 +121,25 @@ spec:
         fi
       else
         image_accessible=1
-        echo "Successfully inspected $related_image. Mirror not required."
+        echo "Successfully inspected $related_image. Mirror not required." >&2
       fi
 
       if [[ $image_accessible -eq 0 ]]; then
-        echo -e "Error: Unable to scan image: Could not inspect image ${related_image} for labels\n"
-        error_counter=$((error_counter + 1))
-        continue
+        echo -e "Error: Unable to scan image: Could not inspect image ${related_image}\n" >&2
+        echo "ERROR" # Return result to stdout
+        return
       fi
       component_label=$(echo "${image_labels}" | grep 'com.redhat.component=' | cut -d= -f2 | tr -d '\n\r' | xargs || true)
       version_label=$(echo "${image_labels}" | grep '^version=' | cut -d= -f2 | tr -d '\n\r' | xargs || true)
       release_label=$(echo "${image_labels}" | grep 'release=' | cut -d= -f2 | tr -d '\n\r' | xargs || true)
-      echo "Component label is ${component_label}"
-      echo "Version label is ${version_label}"
-      echo "Release label is ${release_label}"
+      echo "Component label is ${component_label}" >&2
+      echo "Version label is ${version_label}" >&2
+      echo "Release label is ${release_label}" >&2
 
       if [ -z "${component_label}" ]; then
-        echo -e "Error: Unable to scan image: Could not get com.redhat.component label for ${related_image}\n"
-        error_counter=$((error_counter + 1))
-        continue
+        echo -e "Error: Unable to scan image: Could not get com.redhat.component label for ${related_image}\n" >&2
+        echo "ERROR" # Return result to stdout
+        return
       fi
 
       # Sanitize the image reference to handle Docker references with both tag and digest
@@ -126,29 +147,29 @@ spec:
 
       # If no digest is present, fallback to using tag-based sanitization
       if [[ "${sanitized_related_image}" != *"@"* ]]; then
-        echo "No digest found in sanitized image, using tag-based sanitization"
+        echo "No digest found in sanitized image, using tag-based sanitization" >&2
         sanitized_related_image=$(get_image_registry_repository_tag "${related_image}")
       fi
-      echo "Successfully sanitized image reference: ${sanitized_related_image}. Using sanitized image reference for conversion to OCI format"
+      echo "Successfully sanitized image reference: ${sanitized_related_image}. Using sanitized image reference for conversion to OCI format" >&2
 
       # Convert image to OCI format since umoci can only handle the OCI format
       if ! retry skopeo copy --remove-signatures "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
-        echo -e "Error: Unable to scan image: Could not convert image ${related_image} to OCI format\n"
+        echo -e "Error: Unable to scan image: Could not convert image ${related_image} to OCI format\n" >&2
         # Clean up any partial OCI image artifacts to prevent resource accumulation
         cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
-        error_counter=$((error_counter + 1))
-        continue
+        echo "ERROR" # Return result to stdout
+        return
       fi
 
       # Unpack OCI image
       if ! retry umoci raw unpack --rootless \
           --image "/tekton/home/${component_label}-${version_label}-${release_label}:latest" \
           "/tekton/home/unpacked-${component_label}-${version_label}-${release_label}"; then
-        echo -e "Error: Unable to scan image: Could not unpack OCI image ${related_image}\n"
+        echo -e "Error: Unable to scan image: Could not unpack OCI image ${related_image}\n" >&2
         # Clean up OCI image and any partial unpacked directory to prevent resource accumulation
         cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
-        error_counter=$((error_counter + 1))
-        continue
+        echo "ERROR" # Return result to stdout
+        return
       fi
 
       # Run check-payload on the unpacked image
@@ -160,28 +181,71 @@ spec:
           --components="${component_label}" \
           --output-format=csv \
           --output-file="/tekton/home/report-${component_label}-${version_label}-${release_label}.csv"; then
-        echo -e "check-payload scan failed for ${related_image}\n"
+        echo -e "check-payload scan failed for ${related_image}\n" >&2
         # Clean up OCI image and unpacked directory on scan failure to prevent resource accumulation
         cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
-        failure_counter=$((failure_counter + 1))
-        continue
+        echo "FAILURE" # Return result to stdout
+        return
       fi
 
       if [ -f "/tekton/home/report-${component_label}-${version_label}-${release_label}.csv" ]; then
         if grep -q -- "---- Successful run" "/tekton/home/report-${component_label}-${version_label}-${release_label}.csv"; then
-          echo -e "check-payload scan was successful for ${related_image}\n"
-          success_counter=$((success_counter + 1))
+          echo -e "check-payload scan was successful for ${related_image}\n" >&2
+          echo "SUCCESS" # Return result to stdout
           # Clean up OCI image and unpacked directory on successful run to save space
           cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
         elif grep -q -- "---- Successful run with warnings" "/tekton/home/report-${component_label}-${version_label}-${release_label}.csv"; then
-          echo -e "check-payload scan was successful with warnings for ${related_image}\n"
-          warnings_counter=$((warnings_counter + 1))
+          echo -e "check-payload scan was successful with warnings for ${related_image}\n" >&2
+          echo "WARNING" # Return result to stdout
           # Clean up OCI image and unpacked directory on successful run with warnings to save space
           cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
         fi
       fi
+    }
+    # Export the function so it's available to subshells
+    export -f process_image
 
+    # Set max parallel jobs. Default to 5, but allow override via env var.
+    MAX_PARALLEL_JOBS=${PARALLEL_JOBS:-5}
+    echo "Running with max ${MAX_PARALLEL_JOBS} parallel jobs"
+
+    # Temp file to store results from parallel jobs
+    RESULTS_FILE=$(mktemp)
+
+    # Execute in parallel
+    declare -i count=0
+    for related_image in "${related_images[@]}"; do
+      related_image="${related_image//$'\n'/}"
+      count+=1
+
+      # Run the process in the background.
+      # Redirect its stdout (the result string) to the results file.
+      # Its stderr (logs) will go to the main script's stderr.
+      process_image "$related_image" "${count}" "${#related_images[@]}" >> "$RESULTS_FILE" &
+
+      # Throttle: Wait if we've hit the max parallel job limit
+      while (( $(jobs -r -p | wc -l) >= MAX_PARALLEL_JOBS )); do
+        wait -n # Wait for any single job to finish
+      done
     done
+
+    # Wait for all remaining background jobs to complete
+    echo "All images queued, waiting for remaining jobs to finish..." >&2
+    wait
+    echo "All jobs finished. Aggregating results." >&2
+
+    # Aggregate results
+    while read -r result; do
+      case "$result" in
+        SUCCESS) success_counter=$((success_counter + 1)) ;;
+        WARNING) warnings_counter=$((warnings_counter + 1)) ;;
+        ERROR)   error_counter=$((error_counter + 1)) ;;
+        FAILURE) failure_counter=$((failure_counter + 1)) ;;
+      esac
+    done < "$RESULTS_FILE"
+    
+    # Clean up the temp file
+    rm "$RESULTS_FILE"
 
     note="Task $(context.task.name) failed: Some images could not be scanned. For details, check Tekton task log."
     ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")

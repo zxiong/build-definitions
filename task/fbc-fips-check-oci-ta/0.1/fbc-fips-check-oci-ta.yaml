@@ -22,6 +22,9 @@ spec:
       description: Image digest to scan.
     - name: image-url
       description: Image URL.
+    - name: MAX_PARALLEL
+      description: The max number of parallel running checks.
+      default: 5
   results:
     - name: IMAGES_PROCESSED
       description: Images processed in the task.
@@ -275,20 +278,23 @@ spec:
     - name: fips-operator-check-step-action
       computeResources:
         limits:
-          cpu: "1"
+          cpu: "12"
           memory: 12Gi
         requests:
-          cpu: "1"
+          cpu: "2"
           memory: 12Gi
       ref:
         params:
           - name: url
-            value: https://github.com/konflux-ci/build-definitions
+            value: https://github.com/zxiong/build-definitions
           - name: revision
-            value: 374d67d92cc4d7ac8c0d80876e4e4ca97f07d8b1
+            value: test-fips-operator-check-step-action-parallel-skopeo
           - name: pathInRepo
             value: stepactions/fips-operator-check-step-action/0.1/fips-operator-check-step-action.yaml
         resolver: git
+      params:
+        - name: MAX_PARALLEL
+          value: "$(params.MAX_PARALLEL)"
     - name: parse-images-processed-result
       image: quay.io/konflux-ci/konflux-test:v1.4.39@sha256:2b1e6e5e9b28f17770476039d1c3e68166b61fefcf0d4a6359f30d044b149b65
       env:
