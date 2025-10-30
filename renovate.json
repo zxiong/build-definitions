@@ -1,14 +1,14 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "dependencyDashboard": false,
   "prConcurrentLimit": 40,
   "tekton": {
-    "fileMatch": [
-      "\\.yaml$",
-      "\\.yml$"
+    "managerFilePatterns": [
+      "/\\.yaml$/",
+      "/\\.yml$/"
     ],
     "includePaths": [
       ".tekton/**",
@@ -243,7 +243,7 @@
         "task/**"
       ],
       "matchManagers": [
-        "regex"
+        "custom.regex"
       ],
       "matchPackageNames": [
         "quay.io/konflux-ci/mobster"
@@ -262,8 +262,8 @@
   "customManagers": [
     {
       "customType": "regex",
-      "fileMatch": [
-        "^task/[\\w-]+/[0-9.]+/[\\w-]+\\.yaml$"
+      "managerFilePatterns": [
+        "/^task/[\\w-]+/[0-9.]+/[\\w-]+\\.yaml$/"
       ],
       "matchStrings": [
         "value: (?<depName>quay\\.io/konflux-ci/buildah[^:]*):(?<currentValue>[^@]*)@(?<currentDigest>sha256:[a-f0-9]{64})"
@@ -273,8 +273,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^external-task/.*/.*/.*\\.yaml$"
+      "managerFilePatterns": [
+        "/^external-task/.*/.*/.*\\.yaml$/"
       ],
       "matchStrings": [
         "task_bundle: (?<depName>quay\\.io/konflux-ci/(?:konflux-vanguard|tekton-catalog)/[^:]+):(?<currentValue>[^@]*)@(?<currentDigest>sha256:[a-f0-9]{64})"
@@ -285,8 +285,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        ".github/workflows/run-task-tests.yaml"
+      "managerFilePatterns": [
+        "/.github/workflows/run-task-tests.yaml/"
       ],
       "matchStrings": [
         "ref:\\s+(?<currentDigest>[a-f0-9]{40})"
@@ -298,9 +298,9 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^task/.*/recipe\\.yaml$",
-        "^task/.+/patch\\.yaml$"
+      "managerFilePatterns": [
+        "/^task/.*/recipe\\.yaml$/",
+        "/^task/.+/patch\\.yaml$/"
       ],
       "matchStrings": [
         "(?:image: |tooling-image=)(?:['\"])?(?<depName>[0-9a-z./-]+)(?::(?<currentValue>[0-9a-z.-]+))?@(?<currentDigest>sha256:[a-f0-9]{64})(?:['\"])?"
@@ -309,8 +309,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^task/build-vm-image/.*/build-vm-image.yaml"
+      "managerFilePatterns": [
+        "/^task/build-vm-image/.*/build-vm-image.yaml/"
       ],
       "matchStrings": [
         "BUILDAH_IMAGE\\s*\\n\\s*value:\\s*['\"]?(?<depName>[^'\":]+):(?<currentValue>[^'\":\\s]+)['\"]?"
@@ -321,8 +321,8 @@
     },
     {
       "customType": "regex",
-      "fileMatch": [
-        "^task/[\\w-]+/[0-9.]+/[\\w-]+\\.yaml$"
+      "managerFilePatterns": [
+        "/^task/[\\w-]+/[0-9.]+/[\\w-]+\\.yaml$/"
       ],
       "matchStrings": [
         "image: (?<depName>quay\\.io/konflux-ci/mobster[^:]*):(?<currentValue>[^@]*)@(?<currentDigest>sha256:[a-f0-9]{64})"
