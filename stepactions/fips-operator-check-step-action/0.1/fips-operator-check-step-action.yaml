@@ -51,8 +51,6 @@ spec:
       # Clean up unpacked directory (may or may not exist depending on failure point)
       rm -rf "/tekton/home/unpacked-${component_label}-${version_label}-${release_label}" 2>/dev/null || true
     }
-    # Export for subshells
-    export -f cleanup_image_artifacts
 
     if [ ! -e "/tekton/home/unique_related_images.txt" ]; then
       echo "No relatedImages to process"
@@ -202,8 +200,6 @@ spec:
         fi
       fi
     }
-    # Export the function so it's available to subshells
-    export -f process_image
 
     # Set max parallel jobs. Default to 5, but allow override via env var.
     MAX_PARALLEL_JOBS=${PARALLEL_JOBS:-5}
