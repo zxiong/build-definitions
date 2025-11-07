@@ -22,6 +22,9 @@ spec:
       description: Image digest to scan.
     - name: image-url
       description: Image URL.
+    - name: MAX_PARALLEL
+      description: Maximum number of images to process in parallel
+      default: "5"
   results:
     - name: IMAGES_PROCESSED
       description: Images processed in the task.
@@ -280,6 +283,9 @@ spec:
         requests:
           cpu: "1"
           memory: 12Gi
+      params:
+        - name: MAX_PARALLEL
+          value: $(params.MAX_PARALLEL)
       ref:
         params:
           - name: url

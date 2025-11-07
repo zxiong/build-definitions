@@ -21,6 +21,9 @@ spec:
       description: Image digest to scan.
     - name: image-url
       description: Image URL.
+    - name: MAX_PARALLEL
+      description: Maximum number of images to process in parallel
+      default: "5"
   results:
     - name: TEST_OUTPUT
       description: Tekton task test output.
@@ -265,6 +268,9 @@ spec:
         requests:
           memory: 12Gi
           cpu: '1'
+      params:
+        - name: MAX_PARALLEL
+          value: $(params.MAX_PARALLEL)
       ref:
         resolver: git
         params:

@@ -8,6 +8,7 @@ The fips-operator-bundle-check task uses the check-payload tool to verify if an 
 |SOURCE_ARTIFACT|The Trusted Artifact URI pointing to the artifact with the application source code.||true|
 |image-digest|Image digest to scan.||true|
 |image-url|Image URL.||true|
+|MAX_PARALLEL|Maximum number of images to process in parallel|"5"|false|
 
 ## Results
 |name|description|
@@ -17,3 +18,5 @@ The fips-operator-bundle-check task uses the check-payload tool to verify if an 
 
 
 ## Additional info
+### Parallel Processing
+The MAX_PARALLEL parameter controls how many related images are scanned concurrently. The default value is "5", but this can be adjusted based on your resource availability and performance requirements. Increasing this value can speed up the scan for bundles with many related images, but may require more memory and CPU resources.
