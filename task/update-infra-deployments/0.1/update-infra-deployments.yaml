@@ -196,7 +196,7 @@ spec:
 
       # Based on https://github.com/tektoncd/catalog/tree/main/task/github-app-token/0.2/
     - name: create-mr
-      image: registry.access.redhat.com/ubi9/python-39:9.6-1760372481@sha256:dee7605bfc0cc89b83075937cd48ff7b61bf5e396f8bd2ae13e7f7299be53326
+      image: registry.access.redhat.com/ubi9/python-39:9.7-1763038494@sha256:eca63bfcc04228daec9666b1be0bd7af4f7468ba863424960eebabfb885a39c5
       # per https://kubernetes.io/docs/concepts/containers/images/#imagepullpolicy-defaulting
       # the cluster will set imagePullPolicy to IfNotPresent
       volumeMounts:
