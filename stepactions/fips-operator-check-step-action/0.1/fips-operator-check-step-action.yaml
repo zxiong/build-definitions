@@ -35,6 +35,12 @@ spec:
     export RETRY_COUNT=2
     export RETRY_INTERVAL=5
 
+    # Disable signature verification to prevent GPG zombie processes from skopeo copy
+    # Directly replace /etc/containers/policy.json with insecure policy
+    POLICY_JSON='{"default":[{"type":"insecureAcceptAnything"}],"transports":{"docker":{"":[ {"type":"insecureAcceptAnything"}]},"oci":{"":[{"type":"insecureAcceptAnything"}]}}}'
+    echo "${POLICY_JSON}" > /etc/containers/policy.json
+    echo "Replaced policy.json with insecure policy"
+
     # Create temporary directory for parallel processing counters
     counter_dir=$(mktemp -d)
     trap 'rm -rf "$counter_dir"' EXIT
