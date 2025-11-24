@@ -21,8 +21,9 @@ spec:
   results:
     - name: TEST_OUTPUT
       description: Tekton task test output.
-  image: quay.io/zxiong/konflux-test:v1.4.40.1@sha256:897eaaa2edb4f84f71fc58f308548dc86e3fba4ff6ccff9fab0068966ed6e08c
+  #image: quay.io/zxiong/konflux-test:v1.4.40.1@sha256:897eaaa2edb4f84f71fc58f308548dc86e3fba4ff6ccff9fab0068966ed6e08c
   #image: quay.io/zxiong/konflux-test:v1.4.40@sha256:63405e6b55cddebe13342f9a2603783e2aa55759538d455ea115b3757c9cf9aa
+  image: quay.io/konflux-ci/konflux-test:v1.4.41@sha256:78563cfe8e68e4943ca1dac8cb4d294521e579974759d28194aeb2624d2fb259
   securityContext:
     capabilities:
       add:
