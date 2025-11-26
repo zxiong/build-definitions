@@ -35,12 +35,6 @@ spec:
     export RETRY_COUNT=2
     export RETRY_INTERVAL=5
 
-    # Disable signature verification to prevent GPG zombie processes from skopeo copy
-    # Directly replace /etc/containers/policy.json with insecure policy
-    POLICY_JSON='{"default":[{"type":"insecureAcceptAnything"}],"transports":{"docker":{"":[ {"type":"insecureAcceptAnything"}]},"oci":{"":[{"type":"insecureAcceptAnything"}]}}}'
-    echo "${POLICY_JSON}" > /etc/containers/policy.json
-    echo "Replaced policy.json with insecure policy"
-
     # Create temporary directory for parallel processing counters
     counter_dir=$(mktemp -d)
     trap 'rm -rf "$counter_dir"' EXIT
@@ -127,7 +121,8 @@ spec:
       echo "Successfully sanitized image reference: ${sanitized_related_image}. Using sanitized image reference for conversion to OCI format"
 
       # Convert image to OCI format since umoci can only handle the OCI format
-      if ! retry skopeo copy --remove-signatures "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
+      # Disable signature verification to prevent GPG zombie processes from skopeo copy
+      if ! retry skopeo --insecure-policy copy --remove-signatures "docker://${sanitized_related_image}" "oci:///tekton/home/${component_label}-${version_label}-${release_label}:latest"; then
         echo -e "Error: Unable to scan image: Could not convert image ${related_image} to OCI format\n"
         # Clean up any partial OCI image artifacts to prevent resource accumulation
         cleanup_image_artifacts "${component_label}" "${version_label}" "${release_label}"
