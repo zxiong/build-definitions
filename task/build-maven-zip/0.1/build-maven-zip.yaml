@@ -101,7 +101,7 @@ spec:
         add:
           - SETFCAP
     workingDir: $(workspaces.source.path)
-  - image: quay.io/konflux-ci/oras:latest@sha256:4542f5a2a046ca36653749a8985e46744a5d2d36ee10ca14409be718ce15129e
+  - image: quay.io/konflux-ci/oras:latest@sha256:180b50c7be50c20e3349a79df8dd6062fee0e0dd01aa30e9a09d1d07d9ebd0c2
     name: build
     computeResources:
       limits:
