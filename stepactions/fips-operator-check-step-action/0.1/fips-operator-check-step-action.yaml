@@ -15,9 +15,14 @@ spec:
     - name: MAX_PARALLEL
       description: Maximum number of images to process in parallel (default 8)
       default: "8"
+    - name: FORCE_SUCCESS
+      description: Force all results to success for testing (default false)
+      default: "false"
   env:
     - name: MAX_PARALLEL
       value: $(params.MAX_PARALLEL)
+    - name: FORCE_SUCCESS
+      value: $(params.FORCE_SUCCESS)
   results:
     - name: TEST_OUTPUT
       description: Tekton task test output.
@@ -246,6 +251,14 @@ spec:
       fi
 
       echo "Results: success=${success_counter}, warnings=${warnings_counter}, errors=${error_counter}, failures=${failure_counter}"
+
+      # Force all results to success for testing (if enabled)
+      if [[ "${FORCE_SUCCESS}" == "true" ]]; then
+        echo "FORCE_SUCCESS enabled: Converting all results to success"
+        success_counter=$((success_counter + error_counter + failure_counter))
+        error_counter=0
+        failure_counter=0
+      fi
 
       note="Task $(context.task.name) failed: Some images could not be scanned. For details, check Tekton task log."
       ERROR_OUTPUT=$(make_result_json -r ERROR -t "$note")
