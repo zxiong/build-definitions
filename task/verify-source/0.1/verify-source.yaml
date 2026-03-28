@@ -46,7 +46,7 @@ spec:
       optional: true
   steps:
     - name: slsa-verify
-      image: quay.io/konflux-ci/git-clone@sha256:bd303d16e9d9b01622d69deff77c583ebdea36611b15dc243da658d93763e8de
+      image: quay.io/konflux-ci/git-clone@sha256:09ac9c14392b5c2b8057f66cc4abfb8ce5d7214706318959d00908923a754434
       env:
         - name: PARAM_URL
           value: $(params.url)
