@@ -1,0 +1,433 @@
+---
+# Test PipelineRuns for fbc-fips matrix tasks
+# Apply these to test different edge case scenarios
+#
+# Usage:
+#   kubectl apply -f test-pipelineruns.yaml
+#
+# Or run specific scenario:
+#   kubectl apply -f - <<< $(yq 'select(.metadata.name == "test-fbc-fips-zero-images")' test-pipelineruns.yaml)
+
+# ============================================
+# Scenario 1: Zero images (no related images found)
+# Expected: 1 bucket created, check task runs but no FIPS check needed
+# ============================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: test-fbc-fips-zero-images-
+  labels:
+    test-scenario: zero-images
+spec:
+  pipelineSpec:
+    tasks:
+      - name: fbc-fips-prepare
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main  # Change to your branch
+            - name: pathInRepo
+              value: task/fbc-fips-prepare-oci-ta/0.1/fbc-fips-prepare-oci-ta-test.yaml
+        params:
+          - name: TEST_SCENARIO
+            value: "zero-images"
+          - name: NUM_BUCKETS
+            value: "3"
+          - name: ociStorage
+            value: quay.io/your-repo/test-artifacts  # Change this
+
+      - name: fbc-fips-check
+        runAfter:
+          - fbc-fips-prepare
+        matrix:
+          params:
+            - name: BUCKET_INDEX
+              value: $(tasks.fbc-fips-prepare.results.BUCKET_INDICES[*])
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main  # Change to your branch
+            - name: pathInRepo
+              value: task/fbc-fips-check-matrix-based-oci-ta/0.1/fbc-fips-check-matrix-based-oci-ta.yaml
+        params:
+          - name: BUCKETS_ARTIFACT
+            value: $(tasks.fbc-fips-prepare.results.BUCKETS_ARTIFACT)
+          - name: MAX_PARALLEL
+            value: "2"
+---
+# ============================================
+# Scenario 2: Few images (2 images, NUM_BUCKETS=5)
+# Expected: Only 2 buckets created (not 5)
+# ============================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: test-fbc-fips-few-images-
+  labels:
+    test-scenario: few-images
+spec:
+  pipelineSpec:
+    tasks:
+      - name: fbc-fips-prepare
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-prepare-oci-ta/0.1/fbc-fips-prepare-oci-ta-test.yaml
+        params:
+          - name: TEST_SCENARIO
+            value: "few-images"
+          - name: NUM_BUCKETS
+            value: "5"  # Request 5 buckets, but only 2 images
+          - name: ociStorage
+            value: quay.io/your-repo/test-artifacts
+
+      - name: fbc-fips-check
+        runAfter:
+          - fbc-fips-prepare
+        matrix:
+          params:
+            - name: BUCKET_INDEX
+              value: $(tasks.fbc-fips-prepare.results.BUCKET_INDICES[*])
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-check-matrix-based-oci-ta/0.1/fbc-fips-check-matrix-based-oci-ta.yaml
+        params:
+          - name: BUCKETS_ARTIFACT
+            value: $(tasks.fbc-fips-prepare.results.BUCKETS_ARTIFACT)
+          - name: MAX_PARALLEL
+            value: "2"
+---
+# ============================================
+# Scenario 3: Many images (10 images, NUM_BUCKETS=3)
+# Expected: 3 buckets with load-balanced distribution
+# ============================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: test-fbc-fips-many-images-
+  labels:
+    test-scenario: many-images
+spec:
+  pipelineSpec:
+    tasks:
+      - name: fbc-fips-prepare
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-prepare-oci-ta/0.1/fbc-fips-prepare-oci-ta-test.yaml
+        params:
+          - name: TEST_SCENARIO
+            value: "many-images"
+          - name: NUM_BUCKETS
+            value: "3"
+          - name: ociStorage
+            value: quay.io/your-repo/test-artifacts
+
+      - name: fbc-fips-check
+        runAfter:
+          - fbc-fips-prepare
+        matrix:
+          params:
+            - name: BUCKET_INDEX
+              value: $(tasks.fbc-fips-prepare.results.BUCKET_INDICES[*])
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-check-matrix-based-oci-ta/0.1/fbc-fips-check-matrix-based-oci-ta.yaml
+        params:
+          - name: BUCKETS_ARTIFACT
+            value: $(tasks.fbc-fips-prepare.results.BUCKETS_ARTIFACT)
+          - name: MAX_PARALLEL
+            value: "2"
+---
+# ============================================
+# Scenario 4: Error - Can't render FBC fragment
+# Expected: 1 bucket, check task propagates ERROR
+# ============================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: test-fbc-fips-error-render-fbc-
+  labels:
+    test-scenario: error-render-fbc
+spec:
+  pipelineSpec:
+    tasks:
+      - name: fbc-fips-prepare
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-prepare-oci-ta/0.1/fbc-fips-prepare-oci-ta-test.yaml
+        params:
+          - name: TEST_SCENARIO
+            value: "error-render-fbc"
+          - name: NUM_BUCKETS
+            value: "3"
+          - name: ociStorage
+            value: quay.io/your-repo/test-artifacts
+
+      - name: fbc-fips-check
+        runAfter:
+          - fbc-fips-prepare
+        matrix:
+          params:
+            - name: BUCKET_INDEX
+              value: $(tasks.fbc-fips-prepare.results.BUCKET_INDICES[*])
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-check-matrix-based-oci-ta/0.1/fbc-fips-check-matrix-based-oci-ta.yaml
+        params:
+          - name: BUCKETS_ARTIFACT
+            value: $(tasks.fbc-fips-prepare.results.BUCKETS_ARTIFACT)
+          - name: MAX_PARALLEL
+            value: "2"
+---
+# ============================================
+# Scenario 5: Error - Can't get package names
+# Expected: 1 bucket, check task propagates FAILURE
+# ============================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: test-fbc-fips-error-pkg-names-
+  labels:
+    test-scenario: error-pkg-names
+spec:
+  pipelineSpec:
+    tasks:
+      - name: fbc-fips-prepare
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-prepare-oci-ta/0.1/fbc-fips-prepare-oci-ta-test.yaml
+        params:
+          - name: TEST_SCENARIO
+            value: "error-pkg-names"
+          - name: NUM_BUCKETS
+            value: "3"
+          - name: ociStorage
+            value: quay.io/your-repo/test-artifacts
+
+      - name: fbc-fips-check
+        runAfter:
+          - fbc-fips-prepare
+        matrix:
+          params:
+            - name: BUCKET_INDEX
+              value: $(tasks.fbc-fips-prepare.results.BUCKET_INDICES[*])
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-check-matrix-based-oci-ta/0.1/fbc-fips-check-matrix-based-oci-ta.yaml
+        params:
+          - name: BUCKETS_ARTIFACT
+            value: $(tasks.fbc-fips-prepare.results.BUCKETS_ARTIFACT)
+          - name: MAX_PARALLEL
+            value: "2"
+---
+# ============================================
+# Scenario 6: Error - Can't get unreleased bundles
+# Expected: 1 bucket, check task propagates FAILURE
+# ============================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: test-fbc-fips-error-bundles-
+  labels:
+    test-scenario: error-bundles
+spec:
+  pipelineSpec:
+    tasks:
+      - name: fbc-fips-prepare
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-prepare-oci-ta/0.1/fbc-fips-prepare-oci-ta-test.yaml
+        params:
+          - name: TEST_SCENARIO
+            value: "error-bundles"
+          - name: NUM_BUCKETS
+            value: "3"
+          - name: ociStorage
+            value: quay.io/your-repo/test-artifacts
+
+      - name: fbc-fips-check
+        runAfter:
+          - fbc-fips-prepare
+        matrix:
+          params:
+            - name: BUCKET_INDEX
+              value: $(tasks.fbc-fips-prepare.results.BUCKET_INDICES[*])
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-check-matrix-based-oci-ta/0.1/fbc-fips-check-matrix-based-oci-ta.yaml
+        params:
+          - name: BUCKETS_ARTIFACT
+            value: $(tasks.fbc-fips-prepare.results.BUCKETS_ARTIFACT)
+          - name: MAX_PARALLEL
+            value: "2"
+---
+# ============================================
+# Scenario 7: Error - Can't render bundle image
+# Expected: 1 bucket, check task propagates FAILURE
+# ============================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: test-fbc-fips-error-bundle-img-
+  labels:
+    test-scenario: error-bundle-img
+spec:
+  pipelineSpec:
+    tasks:
+      - name: fbc-fips-prepare
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-prepare-oci-ta/0.1/fbc-fips-prepare-oci-ta-test.yaml
+        params:
+          - name: TEST_SCENARIO
+            value: "error-bundle-img"
+          - name: NUM_BUCKETS
+            value: "3"
+          - name: ociStorage
+            value: quay.io/your-repo/test-artifacts
+
+      - name: fbc-fips-check
+        runAfter:
+          - fbc-fips-prepare
+        matrix:
+          params:
+            - name: BUCKET_INDEX
+              value: $(tasks.fbc-fips-prepare.results.BUCKET_INDICES[*])
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-check-matrix-based-oci-ta/0.1/fbc-fips-check-matrix-based-oci-ta.yaml
+        params:
+          - name: BUCKETS_ARTIFACT
+            value: $(tasks.fbc-fips-prepare.results.BUCKETS_ARTIFACT)
+          - name: MAX_PARALLEL
+            value: "2"
+---
+# ============================================
+# Scenario 8: Single image
+# Expected: 1 bucket with 1 image
+# ============================================
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: test-fbc-fips-one-image-
+  labels:
+    test-scenario: one-image
+spec:
+  pipelineSpec:
+    tasks:
+      - name: fbc-fips-prepare
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-prepare-oci-ta/0.1/fbc-fips-prepare-oci-ta-test.yaml
+        params:
+          - name: TEST_SCENARIO
+            value: "one-image"
+          - name: NUM_BUCKETS
+            value: "3"
+          - name: ociStorage
+            value: quay.io/your-repo/test-artifacts
+
+      - name: fbc-fips-check
+        runAfter:
+          - fbc-fips-prepare
+        matrix:
+          params:
+            - name: BUCKET_INDEX
+              value: $(tasks.fbc-fips-prepare.results.BUCKET_INDICES[*])
+        taskRef:
+          resolver: git
+          params:
+            - name: url
+              value: https://github.com/konflux-ci/build-definitions
+            - name: revision
+              value: main
+            - name: pathInRepo
+              value: task/fbc-fips-check-matrix-based-oci-ta/0.1/fbc-fips-check-matrix-based-oci-ta.yaml
+        params:
+          - name: BUCKETS_ARTIFACT
+            value: $(tasks.fbc-fips-prepare.results.BUCKETS_ARTIFACT)
+          - name: MAX_PARALLEL
+            value: "2"

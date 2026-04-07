@@ -1,0 +1,284 @@
+---
+# Test version of fbc-fips-prepare-oci-ta with mock scenarios
+# Usage: Set TEST_SCENARIO param to one of:
+#   - "normal"           : Run normal flow (no mock)
+#   - "zero-images"      : No related images found
+#   - "one-image"        : Single image (1 bucket)
+#   - "few-images"       : 2 images with NUM_BUCKETS=5 (tests images < buckets)
+#   - "many-images"      : 10 images (tests load balancing)
+#   - "error-render-fbc" : Can't render FBC fragment
+#   - "error-pkg-names"  : Can't get package names
+#   - "error-bundles"    : Can't get unreleased bundles
+#   - "error-bundle-img" : Can't render bundle image
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: fbc-fips-prepare-oci-ta-test
+  labels:
+    app.kubernetes.io/version: "0.1-test"
+spec:
+  description: Test version of fbc-fips-prepare-oci-ta with mock scenarios
+  params:
+    - name: TEST_SCENARIO
+      description: "Test scenario to simulate"
+      type: string
+      default: "normal"
+    - name: SOURCE_ARTIFACT
+      description: The Trusted Artifact URI pointing to the artifact with the application source code
+      type: string
+      default: ""
+    - name: image-digest
+      description: Image digest to scan
+      default: "sha256:test"
+    - name: image-url
+      description: Image URL
+      default: "quay.io/test/test:latest"
+    - name: image-mirror-set-path
+      description: Path to the image mirror set file.
+      type: string
+      default: .tekton/images-mirror-set.yaml
+    - name: ociStorage
+      description: The OCI repository where the Trusted Artifacts are stored
+      type: string
+    - name: NUM_BUCKETS
+      description: Number of buckets to create
+      type: string
+      default: "3"
+    - name: SIZE_FETCH_PARALLEL
+      description: Number of parallel image size fetches for load balancing
+      type: string
+      default: "5"
+  results:
+    - name: BUCKETS_ARTIFACT
+      description: OCI reference to buckets artifact
+      type: string
+    - name: BUCKET_INDICES
+      description: Array of bucket indices for matrix expansion
+      type: array
+    - name: TOTAL_IMAGES
+      description: Total number of unique images
+      type: string
+  volumes:
+    - name: workdir
+      emptyDir: {}
+  stepTemplate:
+    volumeMounts:
+      - mountPath: /var/workdir
+        name: workdir
+  steps:
+    - name: mock-get-unique-related-images
+      image: quay.io/konflux-ci/konflux-test:v1.4.50@sha256:8b9c7be18bef49f60ac9926830174072cc2010c620c7b3d0a5bb53ba02fcf71d
+      env:
+        - name: TEST_SCENARIO
+          value: $(params.TEST_SCENARIO)
+        - name: IMAGE_URL
+          value: $(params.image-url)
+        - name: IMAGE_DIGEST
+          value: $(params.image-digest)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+        # shellcheck source=/dev/null
+        . /utils.sh
+
+        echo "============================================"
+        echo "Mock Test Scenario: ${TEST_SCENARIO}"
+        echo "============================================"
+
+        images_processed_template='{"image": {"pullspec": "'"${IMAGE_URL}"'", "digests": ["'"${IMAGE_DIGEST}"'"]}}'
+
+        case "${TEST_SCENARIO}" in
+          "normal")
+            echo "Running normal flow - no mock"
+            echo "NOTE: This test version doesn't actually process images."
+            echo "Use the real task for normal flow testing."
+            # Create some default test data
+            echo "quay.io/example/operator@sha256:aaa111 quay.io/example/sidecar@sha256:bbb222 quay.io/example/init@sha256:ccc333" > /tekton/home/unique_related_images.txt
+            echo "${images_processed_template}" > /tekton/home/images_processed.txt
+            echo "4.14" > /tekton/home/target_ocp_version.txt
+            ;;
+
+          "zero-images")
+            echo "Simulating: No related images found"
+            echo "This happens when:"
+            echo "  - No unreleased bundles in the FBC fragment"
+            echo "  - Bundles don't require FIPS check (no OpenShift subscription)"
+            # Don't create unique_related_images.txt
+            echo "${images_processed_template}" > /tekton/home/images_processed.txt
+            echo "4.14" > /tekton/home/target_ocp_version.txt
+            ;;
+
+          "one-image")
+            echo "Simulating: Single related image"
+            echo "quay.io/example/single-operator@sha256:single111" > /tekton/home/unique_related_images.txt
+            echo "${images_processed_template}" > /tekton/home/images_processed.txt
+            echo "4.14" > /tekton/home/target_ocp_version.txt
+            ;;
+
+          "few-images")
+            echo "Simulating: Few images (2 images, less than NUM_BUCKETS)"
+            echo "quay.io/example/operator@sha256:aaa111 quay.io/example/sidecar@sha256:bbb222" > /tekton/home/unique_related_images.txt
+            echo "${images_processed_template}" > /tekton/home/images_processed.txt
+            echo "4.14" > /tekton/home/target_ocp_version.txt
+            ;;
+
+          "many-images")
+            echo "Simulating: Many images (10 images for load balancing test)"
+            echo "quay.io/example/img1@sha256:a1 quay.io/example/img2@sha256:a2 quay.io/example/img3@sha256:a3 quay.io/example/img4@sha256:a4 quay.io/example/img5@sha256:a5 quay.io/example/img6@sha256:a6 quay.io/example/img7@sha256:a7 quay.io/example/img8@sha256:a8 quay.io/example/img9@sha256:a9 quay.io/example/img10@sha256:a10" > /tekton/home/unique_related_images.txt
+            echo "${images_processed_template}" > /tekton/home/images_processed.txt
+            echo "4.14" > /tekton/home/target_ocp_version.txt
+            ;;
+
+          "error-render-fbc")
+            echo "Simulating: ERROR - Can't render FBC fragment"
+            note="Task fbc-fips-check-oci-ta failed: Unable to render the FBC fragment image: ${IMAGE_URL}@${IMAGE_DIGEST}"
+            TEST_OUTPUT=$(make_result_json -r ERROR -t "${note}")
+            echo "${TEST_OUTPUT}" > /tekton/home/test_output.txt
+            echo "Error written to test_output.txt"
+            cat /tekton/home/test_output.txt
+            ;;
+
+          "error-pkg-names")
+            echo "Simulating: FAILURE - Can't get package names from FBC fragment"
+            note="Task fbc-fips-check-oci-ta failed: Could not get package names from FBC fragment."
+            TEST_OUTPUT=$(make_result_json -r FAILURE -f 1 -t "${note}")
+            echo "${TEST_OUTPUT}" > /tekton/home/test_output.txt
+            echo "Error written to test_output.txt"
+            cat /tekton/home/test_output.txt
+            ;;
+
+          "error-bundles")
+            echo "Simulating: FAILURE - Can't get unreleased bundles"
+            note="Task fbc-fips-check-oci-ta failed: Could not get unreleased bundle images from the fragment. Make sure you have ImagePullCredentials for registry.redhat.io"
+            TEST_OUTPUT=$(make_result_json -r FAILURE -f 1 -t "${note}")
+            echo "${TEST_OUTPUT}" > /tekton/home/test_output.txt
+            echo "Error written to test_output.txt"
+            cat /tekton/home/test_output.txt
+            ;;
+
+          "error-bundle-img")
+            echo "Simulating: FAILURE - Can't render bundle image"
+            note="Task fbc-fips-check-oci-ta failed: Could not render unreleased bundle image: registry.redhat.io/test/bundle@sha256:xxx. Make sure the image is accessible or a mirror is provided for the same in images-mirror-set.yaml"
+            TEST_OUTPUT=$(make_result_json -r FAILURE -f 1 -t "${note}")
+            echo "${TEST_OUTPUT}" > /tekton/home/test_output.txt
+            echo "Error written to test_output.txt"
+            cat /tekton/home/test_output.txt
+            ;;
+
+          *)
+            echo "ERROR: Unknown test scenario: ${TEST_SCENARIO}"
+            echo "Valid scenarios: normal, zero-images, one-image, few-images, many-images, error-render-fbc, error-pkg-names, error-bundles, error-bundle-img"
+            exit 1
+            ;;
+        esac
+
+        echo ""
+        echo "Mock data created:"
+        ls -la /tekton/home/*.txt 2>/dev/null || echo "  (no files)"
+
+    - name: split-into-buckets
+      image: quay.io/konflux-ci/konflux-test:v1.4.50@sha256:8b9c7be18bef49f60ac9926830174072cc2010c620c7b3d0a5bb53ba02fcf71d
+      env:
+        - name: NUM_BUCKETS
+          value: $(params.NUM_BUCKETS)
+        - name: SIZE_FETCH_PARALLEL
+          value: $(params.SIZE_FETCH_PARALLEL)
+      script: |
+        #!/usr/bin/env bash
+        set -euo pipefail
+
+        echo "=========================================="
+        echo "Splitting images into buckets (max ${NUM_BUCKETS})"
+        echo "=========================================="
+
+        mkdir -p /var/workdir/buckets
+
+        # Helper function to finalize: copy metadata, create BUCKET_INDICES
+        # Uses global variable: actual_buckets
+        finalize() {
+          # Copy metadata files for check task (including test_output.txt for error propagation)
+          for file in target_ocp_version.txt related-images-map.txt images_processed.txt test_output.txt; do
+            if [ -f "/tekton/home/${file}" ]; then
+              cp "/tekton/home/${file}" /var/workdir/buckets/
+            fi
+          done
+
+          # Generate bucket indices JSON array for matrix expansion: ["0","1","2",...]
+          local indices_json="["
+          for ((i=0; i<actual_buckets; i++)); do
+            if [ $i -gt 0 ]; then
+              indices_json+=","
+            fi
+            indices_json+="\"${i}\""
+          done
+          indices_json+="]"
+          echo "Bucket indices: ${indices_json}"
+          echo -n "${indices_json}" > "$(results.BUCKET_INDICES.path)"
+        }
+
+        # Read unique images (space-separated from 0.1 format)
+        if [ ! -f /tekton/home/unique_related_images.txt ]; then
+          echo "No images file found (previous step may have failed or no images to check)"
+          echo "0" > "$(results.TOTAL_IMAGES.path)"
+          # Always launch at least 1 worker to propagate any error from prepare step
+          actual_buckets=1
+          : > "/var/workdir/buckets/bucket-0.txt"
+          finalize
+          exit 0
+        fi
+
+        read -ra images < /tekton/home/unique_related_images.txt
+        num_images=${#images[@]}
+
+        # Write TOTAL_IMAGES result
+        echo "${num_images}" > "$(results.TOTAL_IMAGES.path)"
+
+        if [ "${num_images}" -eq 0 ]; then
+          echo "No images to split"
+          # Always launch at least 1 worker to propagate any error from prepare step
+          actual_buckets=1
+          : > "/var/workdir/buckets/bucket-0.txt"
+          finalize
+          exit 0
+        fi
+
+        # Calculate actual number of buckets: max(1, min(NUM_BUCKETS, num_images))
+        if [ "${num_images}" -lt "${NUM_BUCKETS}" ]; then
+          actual_buckets=${num_images}
+        else
+          actual_buckets=${NUM_BUCKETS}
+        fi
+        echo "Total images: ${num_images}, using ${actual_buckets} bucket(s)"
+
+        # Initialize empty buckets
+        for ((i=0; i<actual_buckets; i++)); do
+          : > "/var/workdir/buckets/bucket-${i}.txt"
+        done
+
+        # For test: skip size fetching, just round-robin distribute
+        echo "Test mode: Round-robin distribution (skipping size fetch)"
+        bucket_idx=0
+        for img in "${images[@]}"; do
+          echo "${img}" >> "/var/workdir/buckets/bucket-${bucket_idx}.txt"
+          bucket_idx=$(( (bucket_idx + 1) % actual_buckets ))
+        done
+
+        # Report
+        echo ""
+        echo "Bucket distribution:"
+        for ((i=0; i<actual_buckets; i++)); do
+          count=$(wc -l < "/var/workdir/buckets/bucket-${i}.txt")
+          echo "  Bucket ${i}: ${count} images"
+          cat "/var/workdir/buckets/bucket-${i}.txt" | sed 's/^/    /'
+        done
+
+        finalize
+        echo "Done!"
+
+    - name: create-buckets-artifact
+      image: quay.io/konflux-ci/build-trusted-artifacts:latest@sha256:15d7dc86012e41b10d1eb37679ec03ee75c96436224fadd0938a49dc537aa4ad
+      args:
+        - create
+        - --store
+        - $(params.ociStorage)
+        - $(results.BUCKETS_ARTIFACT.path)=/var/workdir/buckets

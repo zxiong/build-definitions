@@ -145,6 +145,14 @@ spec:
         fi
 
         # Use step action output (normal FIPS check result)
-        if [ -n "${STEP_ACTION_OUTPUT}" ]; then
+        # Check if STEP_ACTION_OUTPUT is valid (not empty and not unresolved Tekton variable)
+        if [ -n "${STEP_ACTION_OUTPUT}" ] && [[ "${STEP_ACTION_OUTPUT}" != *'$(steps.'* ]]; then
           echo "${STEP_ACTION_OUTPUT}" | tee "$(results.TEST_OUTPUT.path)"
+        else
+          # Stepaction didn't produce output (no images to check) - generate SUCCESS result
+          echo "No images to check in this bucket, generating SUCCESS result"
+          # shellcheck source=/dev/null
+          . /utils.sh
+          TEST_OUTPUT=$(make_result_json -r SUCCESS -s 0 -t "No FIPS issues found (no images to check)")
+          echo "${TEST_OUTPUT}" | tee "$(results.TEST_OUTPUT.path)"
         fi
