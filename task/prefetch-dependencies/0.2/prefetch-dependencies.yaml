@@ -72,7 +72,7 @@ spec:
         name: shared
   steps:
   - name: sanitize-config-file-with-yq
-    image: quay.io/konflux-ci/yq:latest@sha256:53319ea0ba08024abd358a409371d9ab366111d0bfe221bc5bb69cbe1517d171
+    image: quay.io/konflux-ci/yq:latest@sha256:c32538822bd26e0964090c689a1bc640d799bac62290c486b66055ddaf44748a
     script: |
       if [ -n "${CONFIG_FILE_CONTENT}" ]
       then
@@ -83,7 +83,7 @@ spec:
       fi
 
   - name: prefetch-dependencies
-    image: quay.io/konflux-ci/hermeto:0.41.0@sha256:c0c77f44407a094bbeccc9861b83ef0e7cd14220227d6842cd9a2ce1c8d98eaa
+    image: quay.io/konflux-ci/hermeto:0.49.0@sha256:0660ea2089d7a3ee90ae5f8d903e2672ed2fe50707e1122502708e29a21ce8ac
     # per https://kubernetes.io/docs/concepts/containers/images/#imagepullpolicy-defaulting
     # the cluster will set imagePullPolicy to IfNotPresent
     env:
