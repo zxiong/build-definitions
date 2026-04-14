@@ -28,7 +28,7 @@ spec:
       description: Images processed in the task.
   steps:
     - name: get-unique-related-images
-      image: quay.io/konflux-ci/konflux-test:v1.4.39@sha256:89cdc9d251e15d07018548137b4034669df8e9e2b171a188c8b8201d3638cb17
+      image: quay.io/konflux-ci/konflux-test:v1.4.52@sha256:deabe80a01dca3a8a0edb709324e30cbf0baa176f7a181bbb695323f506f7aac
       computeResources:
         limits:
           memory: 12Gi
@@ -276,7 +276,7 @@ spec:
             value: stepactions/fips-operator-check-step-action/0.1/fips-operator-check-step-action.yaml
 
     - name: parse-images-processed-result
-      image: quay.io/konflux-ci/konflux-test:v1.4.39@sha256:2b1e6e5e9b28f17770476039d1c3e68166b61fefcf0d4a6359f30d044b149b65
+      image: quay.io/konflux-ci/konflux-test:v1.4.52@sha256:aa2c97da9bb73a4e8d1c6b41950f8d902b74461be0e042debe89277fdc4ebe49
       env:
         - name: STEP_ACTION_TEST_OUTPUT
           value: $(steps.fips-operator-check-step-action.results.TEST_OUTPUT)
